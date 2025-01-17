@@ -1,0 +1,40 @@
+[package]
+name = "skyfeed"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+
+[[bin]]
+name = "publish"
+
+[[bin]]
+name = "unpublish"
+
+[[bin]]
+name = "verify"
+
+[[example]]
+name = "basic"
+path = "examples/basic/src/main.rs"
+
+[dependencies]
+atrium-api = "0.24.8"
+chrono = "0.4.38"
+clokwerk = "0.4.0"
+dotenv = "0.15.0"
+env_logger = "0.11.5"
+jetstream-oxide = "0.1.0"
+log = "0.4.22"
+regex = "1.11.1"
+rusqlite = "0.32.1"
+serde = "1.0.215"
+serde_json = "1.0.133"
+tokio = { version = "1.41.1", features = ["full"] }
+warp = "0.3.7"
+
+anyhow = "1.0.81"
+clap = { version = "4.5.3", features = ["derive"] }
+reqwest = "0.12.9"
+atrium-xrpc = "0.12.0"
+atrium-xrpc-client = "0.5.10"
