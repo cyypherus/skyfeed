@@ -14,6 +14,7 @@ Create a .env file with the following variables:
 
 <details>
     <summary>PUBLISHER_BLUESKY_HANDLE</summary>
+
 Your handle - something like "someguy.bsky.social"
 
 ```
@@ -24,7 +25,6 @@ PUBLISHER_BLUESKY_HANDLE="someguy.bsky.social"
 
 <details>
     <summary>PUBLISHER_BLUESKY_PASSWORD</summary>
-`PUBLISHER_BLUESKY_PASSWORD`
 
 An app password. You can create app passwords [here](https://bsky.app/settings/app-passwords)
 
@@ -36,8 +36,6 @@ PUBLISHER_BLUESKY_PASSWORD="..."
 
 <details>
     <summary>PUBLISHER_DID</summary>
-
-`PUBLISHER_DID`
 
 Your DID.
 
@@ -55,7 +53,6 @@ PUBLISHER_DID="..."
 
 <details>
     <summary>FEED_GENERATOR_HOSTNAME</summary>
-`FEED_GENERATOR_HOSTNAME`
 
 The host name for your feed generator.
 (In the URL `https://github.com/cyypherus/skyfeed` the host name is `github.com`)
