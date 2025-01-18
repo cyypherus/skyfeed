@@ -6,3 +6,4 @@ traces/
 *.DS_Store
 .cargo/
 .env
+*.sh

@@ -1784,11 +1784,12 @@ dependencies = [
 
 [[package]]
 name = "skyfeed"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "atrium-api",
  "atrium-xrpc-client",
+ "chrono",
  "clap",
  "dotenv",
  "env_logger",

@@ -66,7 +66,7 @@ async fn main() {
             "{}/xrpc/app.bsky.feed.getFeedSkeleton",
             args.local_url
         ))
-        .query(&[("feed", at_uri), ("cursor", "10"), ("limit", "20")])
+        .query(&[("feed", at_uri), ("limit", "20")])
         .send()
         .await
         .expect("Feed skeleton failed");
