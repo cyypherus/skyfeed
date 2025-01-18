@@ -12,10 +12,8 @@ Primarily uses, [warp](https://github.com/seanmonstar/warp), [atrium api](https:
 
 Create a .env file with the following variables:
 
-`PUBLISHER_BLUESKY_HANDLE`
-
 <details>
-<summary>More info</summary>
+<summary>`PUBLISHER_BLUESKY_HANDLE`</summary>
 Your handle - something like "someguy.bsky.social"
 
 ```
