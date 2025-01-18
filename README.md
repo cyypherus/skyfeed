@@ -13,7 +13,7 @@ Primarily uses, [warp](https://github.com/seanmonstar/warp), [atrium api](https:
 Create a .env file with the following variables:
 
 <details>
-<summary>`PUBLISHER_BLUESKY_HANDLE`</summary>
+    <summary>PUBLISHER_BLUESKY_HANDLE</summary>
 Your handle - something like "someguy.bsky.social"
 
 ```
@@ -22,6 +22,8 @@ PUBLISHER_BLUESKY_HANDLE="someguy.bsky.social"
 
 </details>
 
+<details>
+    <summary>PUBLISHER_BLUESKY_PASSWORD</summary>
 `PUBLISHER_BLUESKY_PASSWORD`
 
 An app password. You can create app passwords [here](https://bsky.app/settings/app-passwords)
@@ -29,6 +31,11 @@ An app password. You can create app passwords [here](https://bsky.app/settings/a
 ```
 PUBLISHER_BLUESKY_PASSWORD="..."
 ```
+
+</details>
+
+<details>
+    <summary>PUBLISHER_DID</summary>
 
 `PUBLISHER_DID`
 
@@ -44,6 +51,10 @@ To run the utility, clone this repo, copy your .env & run
 PUBLISHER_DID="..."
 ```
 
+</details>
+
+<details>
+    <summary>FEED_GENERATOR_HOSTNAME</summary>
 `FEED_GENERATOR_HOSTNAME`
 
 The host name for your feed generator.
@@ -59,6 +70,8 @@ You can develop your feed locally without setting this to a real value. However,
 FEED_GENERATOR_HOSTNAME="..."
 
 ```
+
+</details>
 
 # Building a Feed Generator
 
