@@ -22,7 +22,7 @@ Your handle - something like "someguy.bsky.social"
 PUBLISHER_BLUESKY_HANDLE="someguy.bsky.social"
 ```
 
-<details>
+</details>
 
 `PUBLISHER_BLUESKY_PASSWORD`
 
