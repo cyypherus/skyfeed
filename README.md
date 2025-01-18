@@ -177,7 +177,7 @@ async fn main() {
 }
 ```
 
-## Publish to bluesky
+## Publish to BlueSky
 
 This repo also contains [publish](./src/bin/publish.rs) (and [unpublish](./src/bin/unpublish.rs)) utilities for managing your feed's publicity.
 
