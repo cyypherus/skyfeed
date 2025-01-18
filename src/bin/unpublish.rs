@@ -1,14 +1,20 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use atrium_api::{
     agent::{store::MemorySessionStore, AtpAgent},
     types::string::{Handle, Nsid},
 };
 use clap::Parser;
-use dotenv::dotenv;
-use std::env;
 
 #[derive(Parser, Debug)]
 struct Args {
+    /// Your bluesky handle
+    #[arg(long)]
+    handle: String,
+
+    /// An app password. https://bsky.app/settings/app-passwords
+    #[arg(long)]
+    app_password: String,
+
     /// Short name of the feed. Sharing a link to a feed will use a URL like <host>/profile/<user-did>/feed/<name!>. This utility will unpublish the feed with the matching name.
     #[arg(long)]
     name: String,
@@ -18,17 +24,10 @@ pub const XRPC_HOST: &str = "https://bsky.social";
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    println!("Loading env...");
-
-    dotenv().expect("Missing .env file");
-
     let args = Args::parse();
 
-    let handle = env::var("PUBLISHER_BLUESKY_HANDLE")
-        .context("PUBLISHER_BLUESKY_HANDLE environment variable must be set")?;
-
-    let password = env::var("PUBLISHER_BLUESKY_PASSWORD")
-        .context("PUBLISHER_BLUESKY_PASSWORD environment variable must be set")?;
+    let handle = args.handle;
+    let password = args.app_password;
 
     println!("Logging in");
 

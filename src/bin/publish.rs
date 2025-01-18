@@ -8,8 +8,6 @@ use atrium_api::{
     },
 };
 use clap::Parser;
-use dotenv::dotenv;
-use std::env;
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -28,26 +26,30 @@ struct Args {
     /// Filename of the avatar that will be displayed
     #[arg(long)]
     avatar_filename: Option<String>,
+
+    /// Your bluesky handle
+    #[arg(long)]
+    handle: String,
+
+    /// An app password. https://bsky.app/settings/app-passwords
+    #[arg(long)]
+    app_password: String,
+
+    /// Your feed's hostname. The public-facing domain name where the service is accessible
+    /// For example, the `my.domain.name` in https://my.domain.name
+    #[arg(long)]
+    hostname: String,
 }
 
 pub const XRPC_HOST: &str = "https://bsky.social";
 
 #[tokio::main]
 async fn main() {
-    println!("Loading env...");
-
-    dotenv().expect("Missing .env file");
-
     let args = Args::parse();
 
-    let handle = env::var("PUBLISHER_BLUESKY_HANDLE")
-        .expect("PUBLISHER_BLUESKY_HANDLE environment variable must be set");
-
-    let password = env::var("PUBLISHER_BLUESKY_PASSWORD")
-        .expect("PUBLISHER_BLUESKY_PASSWORD environment variable must be set");
-
-    let feed_host_name = env::var("FEED_GENERATOR_HOSTNAME")
-        .expect("PUBLISHER_BLUESKY_PASSWORD environment variable must be set");
+    let handle = args.handle;
+    let password = args.app_password;
+    let feed_host_name = args.hostname;
 
     println!("Logging in...");
 

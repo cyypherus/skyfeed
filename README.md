@@ -41,8 +41,7 @@ Your DID.
 
 This can be a little hard to track down - you can use [this utility](./src/bin/my_did.rs) to check your DID once you've added `PUBLISHER_BLUESKY_HANDLE` & `PUBLISHER_BLUESKY_PASSWORD` to your .env file.
 
-To run the utility, clone this repo, copy your .env & run
-
+To run the my_did utility - clone this repo & run this command inside the crate directory
 `cargo run --bin my_did`
 
 ```
@@ -180,8 +179,7 @@ async fn main() {
 
 This repo also contains [publish](./src/bin/publish.rs) (and [unpublish](./src/bin/unpublish.rs)) utilities for managing your feed's publicity.
 
-To run these, clone this repo, make sure you have a local .env file & run
-
+To run these, clone this repo & run this inside the crate directory
 `cargo run --bin publish`
 
 If you'd like to verify your feed server's endpoints before you publish, you can also use the [verify](./src/bin/verify.rs) utility.

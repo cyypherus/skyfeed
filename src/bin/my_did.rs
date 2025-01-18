@@ -1,24 +1,29 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use atrium_api::{
     agent::{store::MemorySessionStore, AtpAgent},
     types::string::Handle,
 };
-use dotenv::dotenv;
-use std::env;
+use clap::Parser;
 
 pub const XRPC_HOST: &str = "https://bsky.social";
 
+#[derive(Parser, Debug)]
+struct Args {
+    /// Your bluesky handle
+    #[arg(long)]
+    handle: String,
+
+    /// An app password. https://bsky.app/settings/app-passwords
+    #[arg(long)]
+    app_password: String,
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
-    println!("Loading env...");
+    let args = Args::parse();
 
-    dotenv().expect("Missing .env file");
-
-    let handle = env::var("PUBLISHER_BLUESKY_HANDLE")
-        .context("PUBLISHER_BLUESKY_HANDLE environment variable must be set")?;
-
-    let password = env::var("PUBLISHER_BLUESKY_PASSWORD")
-        .context("PUBLISHER_BLUESKY_PASSWORD environment variable must be set")?;
+    let handle = args.handle;
+    let password = args.app_password;
 
     println!("Logging in...");
 
