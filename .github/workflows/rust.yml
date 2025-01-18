@@ -20,12 +20,5 @@ jobs:
         run: cargo build --verbose
       - name: Run tests
         run: cargo test --verbose
-
-  clippy:
-    name: clippy
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-      - name: Run clippy
+      - name: Clippy
         run: cargo clippy -- --deny warnings
