@@ -1,8 +1,9 @@
 # Skyfeed
 
+![rust](https://github.com/cyypherus/skyfeed/actions/workflows/rust.yml/badge.svg)
 [![crates.io](https://img.shields.io/crates/v/skyfeed.svg)](https://crates.io/crates/skyfeed)
 [![downloads](https://img.shields.io/crates/d/skyfeed.svg)](https://crates.io/crates/skyfeed)
-[![license](https://img.shields.io/crates/l/skyfeed.svg)](https://github.com/ejjonny/skyfeed/blob/main/LICENSE)
+[![license](https://img.shields.io/crates/l/skyfeed.svg)](https://github.com/cyypherus/skyfeed/blob/main/LICENSE)
 
 A library for quickly building bluesky feed generators.
 
