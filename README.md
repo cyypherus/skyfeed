@@ -69,9 +69,9 @@ FEED_GENERATOR_HOSTNAME="..."
 
 </details>
 
-# Building a Feed Generator about Cats
+# Building a Feed
 
-This section walks you through building a feed generator using Skyfeed.
+Let's build a simple feed generator about cats.
 
 [Note]
 In a real implementation storage should be implemented with a database such as sqlite for more efficient queries & persistent data.
