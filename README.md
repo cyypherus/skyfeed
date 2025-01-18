@@ -75,6 +75,7 @@ Let's build a simple feed generator about cats.
 
 [Note]
 In a real implementation storage should be implemented with a database such as sqlite for more efficient queries & persistent data.
+This example also doesn't handle pagination - the `Cursor` that is part of the `serve_feed` input & output. A real implementation should use the cursor to only serve posts the user hasn't seen yet.
 
 ## Implement the `FeedHandler` Trait
 
