@@ -13,6 +13,7 @@ Primarily uses, [warp](https://github.com/seanmonstar/warp), [atrium api](https:
 Create a .env file with the following variables:
 
 `PUBLISHER_BLUESKY_HANDLE`
+
 Your handle - something like "someguy.bsky.social"
 
 ```
@@ -20,6 +21,7 @@ PUBLISHER_BLUESKY_HANDLE="someguy.bsky.social"
 ```
 
 `PUBLISHER_BLUESKY_PASSWORD`
+
 An app password. You can create app passwords [here](https://bsky.app/settings/app-passwords)
 
 ```
@@ -27,6 +29,7 @@ PUBLISHER_BLUESKY_PASSWORD="..."
 ```
 
 `PUBLISHER_DID`
+
 Your DID.
 
 This can be a little hard to track down - you can use [this utility](./src/bin/my_did.rs) to check your DID once you've added `PUBLISHER_BLUESKY_HANDLE` & `PUBLISHER_BLUESKY_PASSWORD` to your .env file.
