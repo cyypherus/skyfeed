@@ -11,7 +11,7 @@ use clap::Parser;
 
 #[derive(Parser, Debug)]
 struct Args {
-    /// Short name of the feed. Must match one of the defined algos.
+    /// Short name of the feed.
     #[arg(long)]
     name: String,
 
@@ -31,12 +31,12 @@ struct Args {
     #[arg(long)]
     handle: String,
 
-    /// An app password. https://bsky.app/settings/app-passwords
+    /// An app password. See [app-passwords](https://bsky.app/settings/app-passwords)
     #[arg(long)]
     app_password: String,
 
     /// Your feed's hostname. The public-facing domain name where the service is accessible
-    /// For example, the `my.domain.name` in https://my.domain.name
+    /// For example, the `my.domain.name` in `https://my.domain.name`
     #[arg(long)]
     hostname: String,
 }

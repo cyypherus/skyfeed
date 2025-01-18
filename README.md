@@ -13,36 +13,14 @@ Primarily uses, [warp](https://github.com/seanmonstar/warp), [atrium api](https:
 Create a .env file with the following variables:
 
 <details>
-    <summary>PUBLISHER_BLUESKY_HANDLE</summary>
-
-Your handle - something like "someguy.bsky.social"
-
-```
-PUBLISHER_BLUESKY_HANDLE="someguy.bsky.social"
-```
-
-</details>
-
-<details>
-    <summary>PUBLISHER_BLUESKY_PASSWORD</summary>
-
-An app password. You can create app passwords [here](https://bsky.app/settings/app-passwords)
-
-```
-PUBLISHER_BLUESKY_PASSWORD="..."
-```
-
-</details>
-
-<details>
     <summary>PUBLISHER_DID</summary>
 
 Your DID.
 
-This can be a little hard to track down - you can use [this utility](./src/bin/my_did.rs) to check your DID once you've added `PUBLISHER_BLUESKY_HANDLE` & `PUBLISHER_BLUESKY_PASSWORD` to your .env file.
+This can be a little hard to track down - you can use [this utility](./src/bin/my_did.rs) to check your DID
 
 To run the my_did utility - clone this repo & run this command inside the crate directory
-`cargo run --bin my_did`
+`cargo run --bin my_did --handle <your handle> --app-password <app password>`
 
 ```
 PUBLISHER_DID="..."
@@ -75,7 +53,6 @@ Let's build a simple feed generator about cats.
 
 [Note]
 In a real implementation storage should be implemented with a database such as sqlite for more efficient queries & persistent data.
-This example also doesn't handle pagination - the `Cursor` that is part of the `serve_feed` input & output. A real implementation should use the cursor to only serve posts the user hasn't seen yet.
 
 ## Implement the `FeedHandler` Trait
 

@@ -13,7 +13,7 @@ struct Args {
     #[arg(long)]
     handle: String,
 
-    /// An app password. https://bsky.app/settings/app-passwords
+    /// An app password. See [app-passwords](https://bsky.app/settings/app-passwords)
     #[arg(long)]
     app_password: String,
 }

@@ -11,11 +11,11 @@ struct Args {
     #[arg(long)]
     handle: String,
 
-    /// An app password. https://bsky.app/settings/app-passwords
+    /// An app password. See [app-passwords](https://bsky.app/settings/app-passwords)
     #[arg(long)]
     app_password: String,
 
-    /// Short name of the feed. Sharing a link to a feed will use a URL like <host>/profile/<user-did>/feed/<name!>. This utility will unpublish the feed with the matching name.
+    /// Short name of the feed. Sharing a link to a feed will use a URL like `<host>/profile/<user-did>/feed/<name!>`. This utility will unpublish the feed with the matching name.
     #[arg(long)]
     name: String,
 }

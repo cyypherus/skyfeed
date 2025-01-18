@@ -24,11 +24,39 @@ use warp::Filter;
 use crate::models::{Did, Post, Request, Service, Uri};
 use crate::{config::Config, feed_handler::FeedHandler};
 
+/// A `Feed` stores a `FeedHandler`, handles feed server endpoints & connects to the Firehose using the `start` methods.
 pub trait Feed<Handler: FeedHandler + std::marker::Sync + std::marker::Send + 'static> {
     fn handler(&mut self) -> Arc<Mutex<Handler>>;
+    /// Starts the feed generator server & connects to the firehose.
+    ///
+    /// This method loads the config from a local .env file using `dotenv`. See `Config`
+    ///
+    /// - name: The identifying name of your feed. This value is used in the feed URL & when identifying which feed to *unpublish*. This is a separate value from the display name.
+    /// - address: The address to bind the server to
+    ///
+    /// # Panics
+    ///
+    /// Panics if unable to bind to the provided address.
     fn start(
         &mut self,
         name: impl AsRef<str>,
+        address: impl Into<SocketAddr> + Debug + Clone + Send,
+    ) -> impl std::future::Future<Output = ()> + Send {
+        self.start_with_config(name, Config::load_env_config(), address)
+    }
+    /// Starts the feed generator server & connects to the firehose.
+    ///
+    /// - name: The identifying name of your feed. This value is used in the feed URL & when identifying which feed to *unpublish*. This is a separate value from the display name.
+    /// - config: Configuration values, see `Config`
+    /// - address: The address to bind the server to
+    ///
+    /// # Panics
+    ///
+    /// Panics if unable to bind to the provided address.
+    fn start_with_config(
+        &mut self,
+        name: impl AsRef<str>,
+        config: Config,
         address: impl Into<SocketAddr> + Debug + Clone + Send,
     ) -> impl std::future::Future<Output = ()> + Send {
         let handler = self.handler();
@@ -37,7 +65,7 @@ pub trait Feed<Handler: FeedHandler + std::marker::Sync + std::marker::Send + 's
         async move {
             env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
-            let config = Config::load_env_config();
+            let config = config;
 
             let did_config = config.clone();
             let did_json = warp::path(".well-known")
