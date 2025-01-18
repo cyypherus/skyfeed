@@ -14,11 +14,15 @@ Create a .env file with the following variables:
 
 `PUBLISHER_BLUESKY_HANDLE`
 
+<details>
+<summary>More info</summary>
 Your handle - something like "someguy.bsky.social"
 
 ```
 PUBLISHER_BLUESKY_HANDLE="someguy.bsky.social"
 ```
+
+<details>
 
 `PUBLISHER_BLUESKY_PASSWORD`
 
