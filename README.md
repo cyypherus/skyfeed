@@ -1,11 +1,10 @@
 # Skyfeed
 
-![rust](https://github.com/ejjonny/skyfeed/actions/workflows/rust.yml/badge.svg)
 [![crates.io](https://img.shields.io/crates/v/skyfeed.svg)](https://crates.io/crates/skyfeed)
 [![downloads](https://img.shields.io/crates/d/skyfeed.svg)](https://crates.io/crates/skyfeed)
 [![license](https://img.shields.io/crates/l/skyfeed.svg)](https://github.com/ejjonny/skyfeed/blob/main/LICENSE)
 
-A library for quickly building bluesky feed generators!
+A library for quickly building bluesky feed generators.
 
 Primarily uses, [warp](https://github.com/seanmonstar/warp), [atrium api](https://github.com/sugyan/atrium), and [jetstream-oxide](https://github.com/videah/jetstream-oxide) to greatly simplify the process of building a bluesky feed generator.
 
@@ -13,19 +12,24 @@ Primarily uses, [warp](https://github.com/seanmonstar/warp), [atrium api](https:
 
 Create a .env file with the following variables:
 
+`PUBLISHER_BLUESKY_HANDLE`
 Your handle - something like "someguy.bsky.social"
 
 ```
 PUBLISHER_BLUESKY_HANDLE="someguy.bsky.social"
 ```
 
+`PUBLISHER_BLUESKY_PASSWORD`
 An app password. You can create app passwords [here](https://bsky.app/settings/app-passwords)
 
 ```
 PUBLISHER_BLUESKY_PASSWORD="..."
 ```
 
-Your DID. This can be a little hard to track down - if you'd like you can use [this utility](./src/bin/my_did.rs) to check your DID once you've added `PUBLISHER_BLUESKY_HANDLE` & `PUBLISHER_BLUESKY_PASSWORD` to your .env file.
+`PUBLISHER_DID`
+Your DID.
+
+This can be a little hard to track down - you can use [this utility](./src/bin/my_did.rs) to check your DID once you've added `PUBLISHER_BLUESKY_HANDLE` & `PUBLISHER_BLUESKY_PASSWORD` to your .env file.
 
 To run the utility, clone this repo, copy your .env & run
 
@@ -34,6 +38,8 @@ To run the utility, clone this repo, copy your .env & run
 ```
 PUBLISHER_DID="..."
 ```
+
+`FEED_GENERATOR_HOSTNAME`
 
 The host name for your feed generator.
 (In the URL `https://github.com/cyypherus/skyfeed` the host name is `github.com`)
