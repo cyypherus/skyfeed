@@ -31,22 +31,45 @@ struct MyFeedHandler {
 
 impl FeedHandler for MyFeedHandler {
     async fn insert_post(&mut self, post: Post) {
-        // info!("Creating {post:?}");
-        self.posts.insert(post.uri.clone(), post);
+        if post.text.to_lowercase().contains(" cat ") {
+            info!("Storing {post:?}");
+            const MAX_POSTS: usize = 100;
+
+            self.posts.insert(post.uri.clone(), post);
+
+            if self.posts.len() > MAX_POSTS {
+                let mut post_likes: HashMap<&Uri, u32> = HashMap::new();
+
+                for liked_post_uri in self.likes.values() {
+                    *post_likes.entry(liked_post_uri).or_insert(0) += 1;
+                }
+                if let Some(least_liked_uri) = self
+                    .posts
+                    .keys()
+                    .min_by_key(|uri| post_likes.get(uri).unwrap_or(&0))
+                    .cloned()
+                {
+                    self.posts.remove(&least_liked_uri);
+                }
+            }
+        }
     }
+
     async fn delete_post(&mut self, uri: Uri) {
         self.posts.remove(&uri);
     }
+
     async fn like_post(&mut self, like_uri: Uri, liked_post_uri: Uri) {
         self.likes.insert(like_uri, liked_post_uri);
     }
+
     async fn delete_like(&mut self, like_uri: Uri) {
         self.likes.remove(&like_uri);
     }
+
     async fn serve_feed(&self, request: Request) -> FeedResult {
         info!("Serving {request:?}");
         let mut post_likes: HashMap<&Uri, u32> = HashMap::new();
-
         for liked_post_uri in self.likes.values() {
             *post_likes.entry(liked_post_uri).or_insert(0) += 1;
         }
