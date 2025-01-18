@@ -4,3 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+log = "0.4.25"
+skyfeed = { version = "0.1.0", path = "../.." }
+tokio = { version = "1.43.0", features = ["full"] }

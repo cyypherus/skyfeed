@@ -28,10 +28,12 @@ pub trait Feed<Handler: FeedHandler + std::marker::Sync + std::marker::Send + 's
     fn handler(&mut self) -> Arc<Mutex<Handler>>;
     fn start(
         &mut self,
+        name: impl AsRef<str>,
         address: impl Into<SocketAddr> + Debug + Clone + Send,
     ) -> impl std::future::Future<Output = ()> + Send {
         let handler = self.handler();
         let address = address.clone();
+        let feed_name = name.as_ref().to_string();
         async move {
             env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
@@ -47,7 +49,9 @@ pub trait Feed<Handler: FeedHandler + std::marker::Sync + std::marker::Send + 's
             let describe_feed_generator = warp::path("xrpc")
                 .and(warp::path("app.bsky.feed.describeFeedGenerator"))
                 .and(warp::get())
-                .and_then(move || describe_feed_generator(describe_feed_config.clone()));
+                .and_then(move || {
+                    describe_feed_generator(describe_feed_config.clone(), feed_name.clone())
+                });
 
             let get_feed_handler = handler.clone();
             let get_feed_skeleton = warp::path("xrpc")
@@ -203,7 +207,10 @@ async fn did_json(config: Config) -> Result<impl warp::Reply, warp::Rejection> {
     }))
 }
 
-async fn describe_feed_generator(config: Config) -> Result<impl warp::Reply, warp::Rejection> {
+async fn describe_feed_generator(
+    config: Config,
+    feed_name: String,
+) -> Result<impl warp::Reply, warp::Rejection> {
     Ok(warp::reply::json(&FeedGeneratorDescription {
         did: atrium_api::types::string::Did::new(format!(
             "did:web:{}",
@@ -213,7 +220,7 @@ async fn describe_feed_generator(config: Config) -> Result<impl warp::Reply, war
         feeds: vec![Object::from(FeedData {
             uri: format!(
                 "at://{}/app.bsky.feed.generator/{}",
-                config.publisher_did, "desert-island"
+                config.publisher_did, feed_name
             ),
         })],
         links: None,

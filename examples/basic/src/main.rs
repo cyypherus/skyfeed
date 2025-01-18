@@ -11,7 +11,7 @@ async fn main() {
             likes: HashMap::new(),
         })),
     };
-    feed.start(([0, 0, 0, 0], 3030)).await
+    feed.start("Cats", ([0, 0, 0, 0], 3030)).await
 }
 
 struct MyFeed {
