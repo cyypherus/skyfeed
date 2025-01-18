@@ -179,7 +179,7 @@ async fn main() {
 
 This repo also contains [publish](./src/bin/publish.rs) (and [unpublish](./src/bin/unpublish.rs)) utilities for managing your feed's publicity.
 
-To run these, clone this repo & run this inside the crate directory
+To run these, clone this repo & run this command inside the crate directory
 `cargo run --bin publish`
 
-If you'd like to verify your feed server's endpoints before you publish, you can also use the [verify](./src/bin/verify.rs) utility.
+If you'd like to verify your feed server's endpoints _locally_ before you publish, you can also use the [verify](./src/bin/verify.rs) utility.
