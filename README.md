@@ -78,7 +78,7 @@ In a real implementation storage should be implemented with a database such as s
 
 ## Implement the `FeedHandler` Trait
 
-Your feed handler is responsible for storing and managing firehose input. For the sake of simplicity, we'll use a HashMap to manage posts and likes.
+Your feed handler is responsible for storing and managing firehose input. For the sake of simplicity, we'll use HashMaps to manage posts and likes.
 
 ```rust
 struct MyFeedHandler {
