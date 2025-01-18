@@ -194,7 +194,7 @@ pub trait Feed<Handler: FeedHandler + std::marker::Sync + std::marker::Send + 's
 async fn did_json(config: Config) -> Result<impl warp::Reply, warp::Rejection> {
     Ok(warp::reply::json(&Did {
         context: vec!["https://www.w3.org/ns/did/v1".to_owned()],
-        id: config.feed_generator_did,
+        id: format!("did:web:{}", config.feed_generator_hostname),
         service: vec![Service {
             id: "#bsky_fg".to_owned(),
             type_: "BskyFeedGenerator".to_owned(),
@@ -205,7 +205,11 @@ async fn did_json(config: Config) -> Result<impl warp::Reply, warp::Rejection> {
 
 async fn describe_feed_generator(config: Config) -> Result<impl warp::Reply, warp::Rejection> {
     Ok(warp::reply::json(&FeedGeneratorDescription {
-        did: atrium_api::types::string::Did::new(config.feed_generator_did).unwrap(),
+        did: atrium_api::types::string::Did::new(format!(
+            "did:web:{}",
+            config.feed_generator_hostname
+        ))
+        .unwrap(),
         feeds: vec![Object::from(FeedData {
             uri: format!(
                 "at://{}/app.bsky.feed.generator/{}",

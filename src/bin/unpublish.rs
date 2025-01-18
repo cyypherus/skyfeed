@@ -30,8 +30,6 @@ async fn main() -> Result<()> {
     let password = env::var("PUBLISHER_BLUESKY_PASSWORD")
         .context("PUBLISHER_BLUESKY_PASSWORD environment variable must be set")?;
 
-    // let feed_generator_did = format!("did:web:{}", env::var("FEED_GENERATOR_HOSTNAME")?);
-
     println!("Logging in");
 
     let agent = AtpAgent::new(

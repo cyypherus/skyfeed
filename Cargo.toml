@@ -6,6 +6,9 @@ edition = "2021"
 [lib]
 
 [[bin]]
+name = "my_did"
+
+[[bin]]
 name = "publish"
 
 [[bin]]
