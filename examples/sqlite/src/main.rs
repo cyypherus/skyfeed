@@ -34,7 +34,7 @@ struct MyFeedHandler {
 
 impl FeedHandler for MyFeedHandler {
     async fn insert_post(&mut self, post: Post) {
-        if post.text.to_lowercase().contains(" cat ") {
+        if post.text.to_lowercase().contains(" cat ") && post.labels.is_empty() {
             info!("Storing {post:?}");
             let db = self.db.lock().await;
 

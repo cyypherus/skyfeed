@@ -32,7 +32,35 @@ pub struct Post {
     pub cid: String,
     pub uri: Uri,
     pub text: String,
+    pub labels: Vec<Label>,
     pub timestamp: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Label {
+    Hide,
+    Warn,
+    NoUnauthenticated,
+    Porn,
+    Sexual,
+    GraphicMedia,
+    Nudity,
+    Other(String),
+}
+
+impl From<String> for Label {
+    fn from(value: String) -> Self {
+        match value.as_str() {
+            "!hide" => Label::Hide,
+            "!warn" => Label::Warn,
+            "!no-unauthenticated" => Label::NoUnauthenticated,
+            "porn" => Label::Porn,
+            "sexual" => Label::Sexual,
+            "graphic-media" => Label::GraphicMedia,
+            "nudity" => Label::Nudity,
+            other => Label::Other(other.to_string()),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]

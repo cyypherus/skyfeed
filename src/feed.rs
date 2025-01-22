@@ -5,7 +5,7 @@ use atrium_api::app::bsky::feed::get_feed_skeleton::OutputData as FeedSkeleton;
 use atrium_api::app::bsky::feed::get_feed_skeleton::Parameters as FeedSkeletonQuery;
 use atrium_api::app::bsky::feed::get_feed_skeleton::ParametersData as FeedSkeletonParameters;
 use atrium_api::record::KnownRecord;
-use atrium_api::types::Object;
+use atrium_api::types::{Object, Union};
 use chrono::DateTime;
 use env_logger::Env;
 use jetstream_oxide::exports::Nsid;
@@ -21,7 +21,7 @@ use std::fmt::Debug;
 use std::net::SocketAddr;
 use warp::Filter;
 
-use crate::models::{Did, Post, Request, Service, Uri};
+use crate::models::{Did, Label, Post, Request, Service, Uri};
 use crate::{config::Config, feed_handler::FeedHandler};
 
 /// A `Feed` stores a `FeedHandler`, handles feed server endpoints & connects to the Firehose using the `start` methods.
@@ -168,6 +168,16 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
                                         cid: serde_json::to_string(&cid).unwrap(),
                                         uri: Uri(uri),
                                         text: record.text.clone(),
+                                        labels: record
+                                            .labels
+                                            .as_ref()
+                                            .and_then(|labels| match labels {
+                                                Union::Refs(refs) => Some(refs),
+                                                Union::Unknown(_) => None,
+                                            })
+                                            .map(|label_ref| match label_ref {
+                                                atrium_api::app::bsky::feed::post::RecordLabelsRefs::ComAtprotoLabelDefsSelfLabels(object) => object.values.clone().into_iter().map(|label| Label::from(label.val.clone())).collect::<Vec<Label>>(),
+                                            }).unwrap_or_default(),
                                         timestamp: time,
                                     })
                                     .await;
