@@ -54,6 +54,7 @@ Let's build a simple feed generator about cats.
 
 [Note]
 In a real implementation storage should be implemented with a database such as sqlite for more efficient queries & persistent data.
+See the [sqlite example](./examples/sqlite)
 
 ## Implement the `FeedHandler` Trait
 
