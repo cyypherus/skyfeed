@@ -60,8 +60,9 @@ In a real implementation storage should be implemented with a database such as s
 Your feed handler is responsible for storing and managing firehose input. For the sake of simplicity, we'll just use Vec and HashMap to manage posts and likes.
 
 ```rust
+#[derive(Clone)]
 struct MyFeedHandler {
-    posts: Vec<MyPost>,
+    posts: Arc<Mutex<Vec<MyPost>>>,
 }
 
 #[derive(Debug, Clone)]
@@ -76,37 +77,49 @@ impl FeedHandler for MyFeedHandler {
             info!("Storing {post:?}");
             const MAX_POSTS: usize = 100;
 
-            self.posts.push(MyPost {
+            let mut posts = self.posts.lock().await;
+
+            posts.push(MyPost {
                 post,
                 likes: HashSet::new(),
             });
 
-            if self.posts.len() > MAX_POSTS {
-                self.posts.remove(0);
+            if posts.len() > MAX_POSTS {
+                posts.remove(0);
             }
         }
     }
 
     async fn delete_post(&mut self, uri: Uri) {
         self.posts
+            .lock()
+            .await
             .retain(|post_with_likes| post_with_likes.post.uri != uri);
     }
 
     async fn like_post(&mut self, like_uri: Uri, liked_post_uri: Uri) {
-        if let Some(post_with_likes) = self.posts.iter_mut().find(|p| p.post.uri == liked_post_uri)
+        if let Some(post_with_likes) = self
+            .posts
+            .lock()
+            .await
+            .iter_mut()
+            .find(|p| p.post.uri == liked_post_uri)
         {
             post_with_likes.likes.insert(like_uri);
         }
     }
 
     async fn delete_like(&mut self, like_uri: Uri) {
-        for post_with_likes in &mut self.posts {
+        let mut posts = self.posts.lock().await;
+        for post_with_likes in posts.iter_mut() {
             post_with_likes.likes.remove(&like_uri);
         }
     }
 
     async fn serve_feed(&self, request: Request) -> FeedResult {
         info!("Serving {request:?}");
+
+        let posts = self.posts.lock().await;
 
         // Parse the cursor from the request
         let start_index = if let Some(cursor) = &request.cursor {
@@ -118,7 +131,7 @@ impl FeedHandler for MyFeedHandler {
         let posts_per_page = 5;
 
         // Sort posts by likes
-        let mut sorted_posts: Vec<_> = self.posts.iter().collect();
+        let mut sorted_posts: Vec<_> = posts.iter().collect();
         sorted_posts.sort_by(|a, b| b.likes.len().cmp(&a.likes.len()));
 
         // Paginate posts
@@ -130,7 +143,7 @@ impl FeedHandler for MyFeedHandler {
             .collect();
 
         // Calculate the next cursor
-        let next_cursor = if start_index + posts_per_page < self.posts.len() {
+        let next_cursor = if start_index + posts_per_page < posts.len() {
             Some((start_index + posts_per_page).to_string())
         } else {
             None
@@ -154,11 +167,11 @@ We'll need to use `Arc<Mutex<FeedHandler>>` to enable concurrent shared access.
 
 ```rust
 struct MyFeed {
-    handler: Arc<Mutex<MyFeedHandler>>,
+    handler: MyFeedHandler,
 }
 
 impl Feed<MyFeedHandler> for MyFeed {
-    fn handler(&mut self) -> Arc<Mutex<MyFeedHandler>> {
+    fn handler(&mut self) -> MyFeedHandler {
         self.handler.clone()
     }
 }
@@ -172,7 +185,9 @@ Now we can create an instance of our `Feed` and start it on a local address.
 #[tokio::main]
 async fn main() {
     let mut feed = MyFeed {
-        handler: Arc::new(Mutex::new(MyFeedHandler { posts: Vec::new() })),
+        handler: MyFeedHandler {
+            posts: Arc::new(Mutex::new(Vec::new())),
+        },
     };
     feed.start("Cats", ([0, 0, 0, 0], 3030)).await
 }
