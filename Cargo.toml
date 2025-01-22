@@ -26,6 +26,10 @@ name = "verify"
 name = "basic"
 path = "examples/basic/src/main.rs"
 
+[[example]]
+name = "sqlite"
+path = "examples/sqlite/src/main.rs"
+
 [dependencies]
 atrium-api = "0.24.8"
 dotenv = "0.15.0"
