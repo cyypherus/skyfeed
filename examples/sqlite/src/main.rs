@@ -111,7 +111,7 @@ impl FeedHandler for MyFeedHandler {
             .as_deref()
             .and_then(|c| c.parse::<usize>().ok())
             .unwrap_or(0);
-        let posts_per_page = 5;
+        let posts_per_page = 50;
 
         let page_posts: Vec<_> = posts
             .iter()
