@@ -6,6 +6,7 @@ use atrium_api::app::bsky::feed::get_feed_skeleton::Parameters as FeedSkeletonQu
 use atrium_api::app::bsky::feed::get_feed_skeleton::ParametersData as FeedSkeletonParameters;
 use atrium_api::record::KnownRecord;
 use atrium_api::types::Object;
+use chrono::DateTime;
 use env_logger::Env;
 use jetstream_oxide::{
     events::{
@@ -14,19 +15,17 @@ use jetstream_oxide::{
     },
     DefaultJetstreamEndpoints, JetstreamCompression, JetstreamConfig, JetstreamConnector,
 };
-use log::info;
+use log::{error, info};
 use std::fmt::Debug;
 use std::net::SocketAddr;
-use std::sync::Arc;
-use tokio::sync::Mutex;
 use warp::Filter;
 
 use crate::models::{Did, Post, Request, Service, Uri};
 use crate::{config::Config, feed_handler::FeedHandler};
 
 /// A `Feed` stores a `FeedHandler`, handles feed server endpoints & connects to the Firehose using the `start` methods.
-pub trait Feed<Handler: FeedHandler + std::marker::Sync + std::marker::Send + 'static> {
-    fn handler(&mut self) -> Arc<Mutex<Handler>>;
+pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
+    fn handler(&mut self) -> Handler;
     /// Starts the feed generator server & connects to the firehose.
     ///
     /// This method loads the config from a local .env file using `dotenv`. See `Config`
@@ -59,7 +58,7 @@ pub trait Feed<Handler: FeedHandler + std::marker::Sync + std::marker::Send + 's
         config: Config,
         address: impl Into<SocketAddr> + Debug + Clone + Send,
     ) -> impl std::future::Future<Output = ()> + Send {
-        let handler = self.handler();
+        let mut handler = self.handler();
         let address = address.clone();
         let feed_name = name.as_ref().to_string();
         async move {
@@ -150,15 +149,21 @@ pub trait Feed<Handler: FeedHandler + std::marker::Sync + std::marker::Send + 's
                                     collection.to_string(),
                                     rkey
                                 );
+
+                                let Some(time) =
+                                    DateTime::from_timestamp_micros(info.time_us as i64)
+                                else {
+                                    let time_us = info.time_us;
+                                    error!("Invalid post timestamp: {time_us}");
+                                    continue;
+                                };
                                 handler
-                                    .lock()
-                                    .await
                                     .insert_post(Post {
                                         author_did: info.did.to_string(),
                                         cid: serde_json::to_string(&cid).unwrap(),
                                         uri: Uri(uri),
                                         text: record.text.clone(),
-                                        timestamp: record.created_at.as_str().to_string(),
+                                        timestamp: time,
                                     })
                                     .await;
                             }
@@ -185,8 +190,6 @@ pub trait Feed<Handler: FeedHandler + std::marker::Sync + std::marker::Send + 's
                                     rkey
                                 );
                                 handler
-                                    .lock()
-                                    .await
                                     .like_post(Uri(uri), Uri(record.subject.uri.clone()))
                                     .await;
                             }
@@ -205,9 +208,9 @@ pub trait Feed<Handler: FeedHandler + std::marker::Sync + std::marker::Send + 's
                                     rkey
                                 );
                                 if collection.to_string() == "app.bsky.feed.post" {
-                                    handler.lock().await.delete_post(Uri(uri)).await;
+                                    handler.delete_post(Uri(uri)).await;
                                 } else if collection.to_string() == "app.bsky.feed.like" {
-                                    handler.lock().await.delete_like(Uri(uri)).await;
+                                    handler.delete_like(Uri(uri)).await;
                                 }
                             }
                             _ => (),
@@ -257,11 +260,9 @@ async fn describe_feed_generator(
 
 async fn get_feed_skeleton<Handler: FeedHandler>(
     query: FeedSkeletonQuery,
-    handler: Arc<Mutex<Handler>>,
+    handler: Handler,
 ) -> Result<impl warp::Reply, warp::Rejection> {
     let skeleton = handler
-        .lock()
-        .await
         .serve_feed(Request {
             cursor: query.cursor.clone(),
             feed: query.feed.clone(),

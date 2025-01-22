@@ -42,3 +42,6 @@ clap = { version = "4.5.3", features = ["derive"] }
 reqwest = "0.12.9"
 atrium-xrpc-client = "0.5.10"
 chrono = "0.4.39"
+
+[dev-dependencies]
+rusqlite = { version = "0.33.0", features = ["bundled"] }

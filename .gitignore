@@ -7,3 +7,4 @@ traces/
 .cargo/
 .env
 *.sh
+*.db

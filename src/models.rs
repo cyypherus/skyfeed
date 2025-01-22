@@ -1,4 +1,5 @@
 use atrium_api::types::LimitedNonZeroU8;
+use chrono::{DateTime, Utc};
 use serde::Serialize;
 
 #[derive(Debug, Clone)]
@@ -31,7 +32,7 @@ pub struct Post {
     pub cid: String,
     pub uri: Uri,
     pub text: String,
-    pub timestamp: String,
+    pub timestamp: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
