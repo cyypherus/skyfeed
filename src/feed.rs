@@ -8,6 +8,7 @@ use atrium_api::record::KnownRecord;
 use atrium_api::types::Object;
 use chrono::DateTime;
 use env_logger::Env;
+use jetstream_oxide::exports::Nsid;
 use jetstream_oxide::{
     events::{
         commit::{CommitData, CommitEvent, CommitInfo, CommitType},
@@ -118,6 +119,10 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
             let firehose_listener = tokio::spawn(async move {
                 let jetstream = JetstreamConnector::new(JetstreamConfig {
                     endpoint: DefaultJetstreamEndpoints::USEastOne.into(),
+                    wanted_collections: vec![
+                        Nsid::new("app.bsky.feed.post".to_string()).unwrap(),
+                        Nsid::new("app.bsky.feed.like".to_string()).unwrap(),
+                    ],
                     compression: JetstreamCompression::Zstd,
                     ..Default::default()
                 })
