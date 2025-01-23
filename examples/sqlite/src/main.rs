@@ -45,12 +45,28 @@ impl FeedHandler for MyFeedHandler {
             .expect("Failed to insert post");
 
             // Clean up old posts
-            const MAX_POSTS: usize = 100;
+            const MAX_POSTS: usize = 200;
+            const TOP_N_EXEMPT: usize = 15;
             db.execute(
                 &format!(
-                    "DELETE FROM posts WHERE uri NOT IN (
-                        SELECT uri FROM posts ORDER BY timestamp DESC LIMIT {MAX_POSTS}
-                    )"
+                    "
+                    DELETE FROM posts
+                    WHERE uri NOT IN (
+                        SELECT posts.uri
+                        FROM posts
+                        LEFT JOIN likes ON posts.uri = likes.post_uri
+                        WHERE (strftime('%s', 'now') - posts.timestamp) <= 18000 -- 5 hours in seconds
+                        GROUP BY posts.uri
+                        ORDER BY COUNT(likes.like_uri) DESC
+                        LIMIT {TOP_N_EXEMPT}
+                    )
+                    AND uri NOT IN (
+                        SELECT uri
+                        FROM posts
+                        ORDER BY timestamp DESC
+                        LIMIT {MAX_POSTS}
+                    )
+                    "
                 ),
                 [],
             )
