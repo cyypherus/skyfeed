@@ -39,7 +39,7 @@ impl FeedHandler for MyFeedHandler {
             let db = self.db.lock().await;
 
             db.execute(
-                "INSERT INTO posts (uri, text, timestamp) VALUES (?1, ?2, ?3)",
+                "INSERT OR REPLACE INTO posts (uri, text, timestamp) VALUES (?1, ?2, ?3)",
                 params![post.uri.0, post.text, post.timestamp.timestamp()],
             )
             .expect("Failed to insert post");
