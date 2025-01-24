@@ -1119,7 +1119,7 @@ checksum = "d75a2a4b1b190afb6f5425f10f6a8f959d2ea0b9c2b1d79553551850539e4674"
 [[package]]
 name = "jetstream-oxide"
 version = "0.1.0"
-source = "git+https://github.com/cyypherus/jetstream-oxide?rev=42dd96b7fa800c67680385d1eeac627c478b3dc3#42dd96b7fa800c67680385d1eeac627c478b3dc3"
+source = "git+https://github.com/cyypherus/jetstream-oxide?rev=0ced7f9eec58e368f4ef2d7991f68f1753b5fa39#0ced7f9eec58e368f4ef2d7991f68f1753b5fa39"
 dependencies = [
  "async-trait",
  "atrium-api",
@@ -1132,6 +1132,7 @@ dependencies = [
  "thiserror 2.0.11",
  "tokio",
  "tokio-tungstenite 0.24.0",
+ "tokio-util",
  "url",
  "zstd",
 ]
