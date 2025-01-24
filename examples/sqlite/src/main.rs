@@ -107,7 +107,7 @@ impl FeedHandler for MyFeedHandler {
                 )
                 SELECT uri, likes
                 FROM sorted_posts
-                WHERE rank <= 0.3
+                WHERE rank <= 0.1
                 ORDER BY timestamp DESC;
              ",
             )
@@ -147,47 +147,26 @@ impl FeedHandler for MyFeedHandler {
 }
 
 async fn cleanup_posts(db: &Arc<Mutex<Connection>>) {
-    const MAX_POSTS: usize = 1000;
+    const MAX_POSTS: usize = 200;
 
-    let cleaned_posts = db.lock().await.execute(
-        &format!(
-            "
-            WITH RankedPosts AS (
-                SELECT
-                    posts.uri,
-                    posts.timestamp,
-                    COUNT(likes.like_uri) AS like_count,
-                    ROW_NUMBER() OVER (ORDER BY COUNT(likes.like_uri) DESC) AS rank
-                FROM posts
-                LEFT JOIN likes ON posts.uri = likes.post_uri
-                GROUP BY posts.uri
+    let cleaned_posts = db
+        .lock()
+        .await
+        .execute(
+            &format!(
+                "
+                DELETE FROM posts
+                WHERE uri NOT IN (
+                    SELECT uri
+                    FROM posts
+                    ORDER BY timestamp DESC
+                    LIMIT {MAX_POSTS}
+                );
+                "
             ),
-            ExemptPosts AS (
-                SELECT
-                    uri
-                FROM RankedPosts
-                WHERE
-                    (CASE
-                        WHEN rank <= 10 THEN 4 * 3600
-                        WHEN rank <= 50 THEN 2 * 3600
-                        WHEN rank <= 100 THEN 1.5 * 3600
-                        WHEN rank <= 500 THEN 1 * 3600
-                        ELSE 0  -- Remaining posts: no exemption
-                    END) >= (strftime('%s', 'now') - timestamp)  -- Exempt if within rank-based hours
-            )
-            DELETE FROM posts
-            WHERE uri NOT IN (SELECT uri FROM ExemptPosts)
-            AND uri NOT IN (
-                SELECT uri
-                FROM posts
-                ORDER BY timestamp DESC
-                LIMIT {MAX_POSTS}
-            );
-            "
-        ),
-        [],
-    )
-    .expect("Failed to clean up old posts");
+            [],
+        )
+        .expect("Failed to clean up old posts");
 
     info!("Cleaned up {cleaned_posts} posts");
 }
