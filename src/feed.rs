@@ -127,7 +127,7 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
                     ..Default::default()
                 })
                 .unwrap();
-                let (receiver, _) = jetstream.connect().await.unwrap();
+                let receiver = jetstream.connect().await.unwrap();
                 while let Ok(event) = receiver.recv_async().await {
                     if let Commit(commit) = event {
                         #[allow(clippy::collapsible_match)]

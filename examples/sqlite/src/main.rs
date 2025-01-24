@@ -1,7 +1,7 @@
 use log::info;
 use rusqlite::{params, Connection};
 use skyfeed::{Feed, FeedHandler, FeedResult, Post, Request, Uri};
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 
 #[tokio::main]
@@ -9,12 +9,23 @@ async fn main() {
     let db = Connection::open("feed.db").expect("Failed to open database");
     initialize_db(&db);
 
+    let db = Arc::new(Mutex::new(db));
+
     let mut feed = MyFeed {
-        handler: MyFeedHandler {
-            db: Arc::new(Mutex::new(db)),
-        },
+        handler: MyFeedHandler { db: db.clone() },
     };
-    feed.start("Cats", ([0, 0, 0, 0], 3030)).await
+
+    let mut cleanup_interval = tokio::time::interval(Duration::from_secs(10));
+    let cleanup_task = tokio::spawn(async move {
+        loop {
+            cleanup_interval.tick().await;
+            cleanup_posts(&db).await;
+        }
+    });
+
+    tokio::join!(feed.start("Cats", ([0, 0, 0, 0], 3030)), cleanup_task)
+        .1
+        .expect("Starting tasks failed");
 }
 
 struct MyFeed {
@@ -43,34 +54,6 @@ impl FeedHandler for MyFeedHandler {
                 params![post.uri.0, post.text, post.timestamp.timestamp()],
             )
             .expect("Failed to insert post");
-
-            // Clean up old posts
-            const MAX_POSTS: usize = 200;
-            const TOP_N_EXEMPT: usize = 15;
-            db.execute(
-                &format!(
-                    "
-                    DELETE FROM posts
-                    WHERE uri NOT IN (
-                        SELECT posts.uri
-                        FROM posts
-                        LEFT JOIN likes ON posts.uri = likes.post_uri
-                        WHERE (strftime('%s', 'now') - posts.timestamp) <= 18000 -- 5 hours in seconds
-                        GROUP BY posts.uri
-                        ORDER BY COUNT(likes.like_uri) DESC
-                        LIMIT {TOP_N_EXEMPT}
-                    )
-                    AND uri NOT IN (
-                        SELECT uri
-                        FROM posts
-                        ORDER BY timestamp DESC
-                        LIMIT {MAX_POSTS}
-                    )
-                    "
-                ),
-                [],
-            )
-            .expect("Failed to clean up old posts");
         }
     }
 
@@ -103,24 +86,38 @@ impl FeedHandler for MyFeedHandler {
         let db = self.db.lock().await;
         let mut stmt = db
             .prepare(
-                "SELECT uri, text, COUNT(like_uri) as likes \
-             FROM posts \
-             LEFT JOIN likes ON posts.uri = likes.post_uri \
-             GROUP BY posts.uri \
-             ORDER BY likes DESC",
+                "
+                WITH ranked_posts AS (
+                    SELECT
+                        uri,
+                        timestamp,
+                        COUNT(like_uri) AS likes
+                    FROM posts
+                    LEFT JOIN likes ON posts.uri = likes.post_uri
+                    GROUP BY posts.uri
+                    HAVING COUNT(like_uri) > 0
+                ),
+                sorted_posts AS (
+                    SELECT
+                        uri,
+                        timestamp,
+                        likes,
+                        PERCENT_RANK() OVER (ORDER BY likes DESC) AS rank
+                    FROM ranked_posts
+                )
+                SELECT uri, likes
+                FROM sorted_posts
+                WHERE rank <= 0.3
+                ORDER BY timestamp DESC;
+             ",
             )
             .expect("Failed to prepare statement");
 
         let post_iter = stmt
-            .query_map([], |row| {
-                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-            })
+            .query_map([], |row| row.get::<_, String>(0))
             .expect("Failed to query posts");
 
-        let posts: Vec<(Uri, String)> = post_iter
-            .map(|x| x.unwrap())
-            .map(|x| (Uri(x.0), x.1))
-            .collect();
+        let posts: Vec<Uri> = post_iter.map(|x| x.unwrap()).map(Uri).collect();
 
         let start_index = request
             .cursor
@@ -144,9 +141,55 @@ impl FeedHandler for MyFeedHandler {
 
         FeedResult {
             cursor: next_cursor,
-            feed: page_posts.iter().map(|(uri, _)| uri.clone()).collect(),
+            feed: page_posts,
         }
     }
+}
+
+async fn cleanup_posts(db: &Arc<Mutex<Connection>>) {
+    const MAX_POSTS: usize = 1000;
+
+    let cleaned_posts = db.lock().await.execute(
+        &format!(
+            "
+            WITH RankedPosts AS (
+                SELECT
+                    posts.uri,
+                    posts.timestamp,
+                    COUNT(likes.like_uri) AS like_count,
+                    ROW_NUMBER() OVER (ORDER BY COUNT(likes.like_uri) DESC) AS rank
+                FROM posts
+                LEFT JOIN likes ON posts.uri = likes.post_uri
+                GROUP BY posts.uri
+            ),
+            ExemptPosts AS (
+                SELECT
+                    uri
+                FROM RankedPosts
+                WHERE
+                    (CASE
+                        WHEN rank <= 10 THEN 4 * 3600
+                        WHEN rank <= 50 THEN 2 * 3600
+                        WHEN rank <= 100 THEN 1.5 * 3600
+                        WHEN rank <= 500 THEN 1 * 3600
+                        ELSE 0  -- Remaining posts: no exemption
+                    END) >= (strftime('%s', 'now') - timestamp)  -- Exempt if within rank-based hours
+            )
+            DELETE FROM posts
+            WHERE uri NOT IN (SELECT uri FROM ExemptPosts)
+            AND uri NOT IN (
+                SELECT uri
+                FROM posts
+                ORDER BY timestamp DESC
+                LIMIT {MAX_POSTS}
+            );
+            "
+        ),
+        [],
+    )
+    .expect("Failed to clean up old posts");
+
+    info!("Cleaned up {cleaned_posts} posts");
 }
 
 fn initialize_db(db: &Connection) {

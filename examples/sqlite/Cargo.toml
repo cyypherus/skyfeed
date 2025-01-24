@@ -6,6 +6,6 @@ edition = "2021"
 [dependencies]
 log = "0.4.25"
 skyfeed = { path = "../.." }
-tokio = { version = "1.43.0", features = ["full"] }
+tokio = { version = "1.43.0", features = ["full", "time"] }
 rusqlite = { version = "0.33.0", features = ["bundled"] }
 chrono = "0.4.39"
