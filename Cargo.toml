@@ -10,6 +10,9 @@ authors = ["cyypherus"]
 
 [lib]
 
+[features]
+test-api = []
+
 [[bin]]
 name = "my_did"
 
@@ -48,5 +51,10 @@ atrium-xrpc-client = "0.5.10"
 chrono = "0.4.39"
 
 [dev-dependencies]
+insta = "1.42.1"
+public-api = "0.43.0"
+rustdoc-json = "0.9.4"
+rustup-toolchain = "0.1.9"
+
 rusqlite = { version = "0.33.0", features = ["bundled"] }
 regex = "1.11.1"
