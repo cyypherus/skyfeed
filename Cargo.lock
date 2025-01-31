@@ -1112,8 +1112,9 @@ checksum = "540654e97a3f4470a492cd30ff187bc95d89557a903a2bbf112e2fae98104ef2"
 
 [[package]]
 name = "jetstream-oxide"
-version = "0.1.0"
-source = "git+https://github.com/cyypherus/jetstream-oxide?rev=42dd96b7fa800c67680385d1eeac627c478b3dc3#42dd96b7fa800c67680385d1eeac627c478b3dc3"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cbde770c76b32262a837d968850d29232189844f4e11a3f02a3d87473929f7e9"
 dependencies = [
  "async-trait",
  "atrium-api",
@@ -1126,6 +1127,7 @@ dependencies = [
  "thiserror 2.0.3",
  "tokio",
  "tokio-tungstenite 0.24.0",
+ "tokio-util",
  "url",
  "zstd",
 ]
@@ -1839,6 +1841,7 @@ dependencies = [
  "env_logger",
  "jetstream-oxide",
  "log",
+ "regex",
  "reqwest",
  "rusqlite",
  "serde",
@@ -2102,9 +2105,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-util"
-version = "0.7.12"
+version = "0.7.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61e7c3654c13bcd040d4a03abee2c75b1d14a37b423cf5a813ceae1cc903ec6a"
+checksum = "d7fcaa8d55a2bdd6b83ace262b016eca0d79ee02818c5c1bcdf0305114081078"
 dependencies = [
  "bytes",
  "futures-core",

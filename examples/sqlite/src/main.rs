@@ -45,7 +45,22 @@ struct MyFeedHandler {
 
 impl FeedHandler for MyFeedHandler {
     async fn insert_post(&mut self, post: Post) {
-        if post.text.to_lowercase().contains(" cat ") && post.labels.is_empty() {
+        let cat_regex =
+            regex::RegexBuilder::new("\\b(cats?|kitty|kitties|kittens?|feline|catsofbluesky)\\b")
+                .case_insensitive(true)
+                .build()
+                .unwrap();
+
+        let unwanted_regex =
+            regex::RegexBuilder::new("\\b(trump|kamala|harris|biden|democrats?|democratic|republicans?|politics|dems?|aoc|GOP|vance|musk|elon|walz|fascists?|furryart|smut|furries|dnc|RFK)\\b|(right wing|left wing)")
+                .case_insensitive(true)
+                .build()
+                .unwrap();
+
+        if cat_regex.is_match(post.text.as_str())
+            && !unwanted_regex.is_match(post.text.as_str())
+            && post.labels.is_empty()
+        {
             info!("Storing {post:?}");
             let db = self.db.lock().await;
 
@@ -107,7 +122,7 @@ impl FeedHandler for MyFeedHandler {
                 )
                 SELECT uri, likes
                 FROM sorted_posts
-                WHERE rank <= 0.1
+                WHERE rank <= 0.05
                 ORDER BY timestamp DESC;
              ",
             )
@@ -147,7 +162,7 @@ impl FeedHandler for MyFeedHandler {
 }
 
 async fn cleanup_posts(db: &Arc<Mutex<Connection>>) {
-    const MAX_POSTS: usize = 200;
+    const MAX_POSTS: usize = 10_000;
 
     let cleaned_posts = db
         .lock()
@@ -192,4 +207,10 @@ fn initialize_db(db: &Connection) {
         [],
     )
     .expect("Failed to create likes table");
+
+    db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_likes_post_uri ON likes(post_uri)",
+        [],
+    )
+    .expect("Failed to create index on likes.post_uri");
 }

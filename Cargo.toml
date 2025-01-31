@@ -34,7 +34,7 @@ path = "examples/sqlite/src/main.rs"
 atrium-api = "0.24.8"
 dotenv = "0.15.0"
 env_logger = "0.11.5"
-jetstream-oxide = { git = "https://github.com/cyypherus/jetstream-oxide", rev = "0ced7f9eec58e368f4ef2d7991f68f1753b5fa39" }
+jetstream-oxide = "0.1.1"
 log = "0.4.22"
 serde = "1.0.215"
 serde_json = "1.0.133"
@@ -49,3 +49,4 @@ chrono = "0.4.39"
 
 [dev-dependencies]
 rusqlite = { version = "0.33.0", features = ["bundled"] }
+regex = "1.11.1"
