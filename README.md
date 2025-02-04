@@ -48,7 +48,7 @@ FEED_GENERATOR_HOSTNAME="..."
 
 </details>
 
-Once published, or while testing, your feed will be served at http://<host name>/xrpc/app.bsky.feed.getFeedSkeleton?feed=<feed name>`. 
+Once published, or while testing, your feed will be served at `http://<host name>/xrpc/app.bsky.feed.getFeedSkeleton?feed=<feed name>`. 
 
 There are other optinal query parameters for your feed, which you can learn more about [here](https://docs.rs/atrium-api/latest/atrium_api/app/bsky/feed/get_feed_skeleton/struct.ParametersData.html). 
 
