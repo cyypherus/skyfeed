@@ -11,7 +11,8 @@ authors = ["cyypherus"]
 [lib]
 
 [features]
-test-api = []
+test-api = ["insta", "public-api", "rustdoc-json", "rustup-toolchain"]
+examples = ["rusqlite", "regex"]
 
 [[bin]]
 name = "my_did"
@@ -28,10 +29,12 @@ name = "verify"
 [[example]]
 name = "basic"
 path = "examples/basic/src/main.rs"
+required-features = ["examples"]
 
 [[example]]
 name = "sqlite"
 path = "examples/sqlite/src/main.rs"
+required-features = ["examples"]
 
 [dependencies]
 atrium-api = "0.24.8"
@@ -50,11 +53,10 @@ reqwest = "0.12.9"
 atrium-xrpc-client = "0.5.10"
 chrono = "0.4.39"
 
-[dev-dependencies]
-insta = "1.42.1"
-public-api = "0.43.0"
-rustdoc-json = "0.9.4"
-rustup-toolchain = "0.1.9"
+rusqlite = { version = "0.33.0", features = ["bundled"], optional = true }
+regex = { version = "1.11.1", optional = true }
 
-rusqlite = { version = "0.33.0", features = ["bundled"] }
-regex = "1.11.1"
+insta = { version = "1.42.1", optional = true }
+public-api = { version = "0.43.0", optional = true }
+rustdoc-json = { version = "0.9.4", optional = true }
+rustup-toolchain = { version = "0.1.9", optional = true }
