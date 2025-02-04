@@ -1,4 +1,7 @@
-use atrium_api::types::LimitedNonZeroU8;
+use atrium_api::{
+    app::bsky::feed::post::{RecordEmbedRefs, RecordLabelsRefs},
+    types::{LimitedNonZeroU8, Union},
+};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 
@@ -34,6 +37,79 @@ pub struct Post {
     pub text: String,
     pub labels: Vec<Label>,
     pub timestamp: DateTime<Utc>,
+    pub embed: Option<Embed>,
+}
+
+#[derive(Debug, Clone)]
+pub enum Embed {
+    Images(Vec<ImageEmbed>),
+    Video,
+    External,
+    Record,
+    RecordWithMedia,
+}
+
+#[derive(Debug, Clone)]
+pub struct ImageEmbed {
+    pub alt_text: String,
+    pub mime_type: String,
+}
+
+impl Label {
+    pub(crate) fn from_atrium(value: &Union<RecordLabelsRefs>) -> Option<Vec<Label>> {
+        match value {
+            Union::Refs(refs) => match refs {
+                RecordLabelsRefs::ComAtprotoLabelDefsSelfLabels(object) => Some(
+                    object
+                        .values
+                        .clone()
+                        .into_iter()
+                        .map(|label| Label::from(label.val.clone()))
+                        .collect::<Vec<Label>>(),
+                ),
+            },
+            Union::Unknown(_) => None,
+        }
+    }
+}
+
+impl Embed {
+    pub(crate) fn from_atrium(
+        value: &atrium_api::types::Union<atrium_api::app::bsky::feed::post::RecordEmbedRefs>,
+    ) -> Option<Self> {
+        match value {
+            Union::Refs(e) => match e {
+                RecordEmbedRefs::AppBskyEmbedImagesMain(object) => Some(Embed::Images(
+                    object
+                        .images
+                        .iter()
+                        .map(|i| ImageEmbed {
+                            alt_text: i.alt.clone(),
+                            mime_type: {
+                                match &i.data.image {
+                                    atrium_api::types::BlobRef::Typed(typed_blob_ref) => {
+                                        match typed_blob_ref {
+                                            atrium_api::types::TypedBlobRef::Blob(b) => {
+                                                b.mime_type.clone()
+                                            }
+                                        }
+                                    }
+                                    atrium_api::types::BlobRef::Untyped(un_typed_blob_ref) => {
+                                        un_typed_blob_ref.mime_type.clone()
+                                    }
+                                }
+                            },
+                        })
+                        .collect(),
+                )),
+                RecordEmbedRefs::AppBskyEmbedVideoMain(_) => Some(Embed::Video),
+                RecordEmbedRefs::AppBskyEmbedExternalMain(_) => Some(Embed::External),
+                RecordEmbedRefs::AppBskyEmbedRecordMain(_) => Some(Embed::Record),
+                RecordEmbedRefs::AppBskyEmbedRecordWithMediaMain(_) => Some(Embed::RecordWithMedia),
+            },
+            atrium_api::types::Union::Unknown(_) => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
