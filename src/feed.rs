@@ -178,11 +178,7 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
                                     langs: record
                                         .langs
                                         .iter()
-                                        .filter_map(|lang| {
-                                            // As far as I can tell atrium_api doesn't expose the types necessary to
-                                            // avoid re-parsing this into a useful type.
-                                            serde_json::to_string(&lang).ok()
-                                        })
+                                        .filter_map(|lang| serde_json::to_string(&lang).ok())
                                         .collect(),
                                 };
                                 handler.insert_post(post).await;
