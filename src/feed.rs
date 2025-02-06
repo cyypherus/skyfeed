@@ -22,6 +22,7 @@ use std::net::SocketAddr;
 use warp::Filter;
 
 use crate::models::{Did, Embed, Label, Post, Request, Service, Uri};
+use crate::Cid;
 use crate::{config::Config, feed_handler::FeedHandler};
 
 /// A `Feed` stores a `FeedHandler`, handles feed server endpoints & connects to the Firehose using the `start` methods.
@@ -164,7 +165,7 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
                                 };
                                 let post = Post {
                                     author_did: info.did.to_string(),
-                                    cid: serde_json::to_string(&cid).unwrap(),
+                                    cid: Cid(serde_json::to_string(&cid).unwrap()),
                                     uri: Uri(uri),
                                     text: record.text.clone(),
                                     labels: record
@@ -174,8 +175,16 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
                                         .unwrap_or_default(),
                                     timestamp: time,
                                     embed: record.embed.as_ref().and_then(Embed::from_atrium),
+                                    langs: record
+                                        .langs
+                                        .iter()
+                                        .filter_map(|lang| {
+                                            // As far as I can tell atrium_api doesn't expose the types necessary to
+                                            // avoid re-parsing this into a useful type.
+                                            serde_json::to_string(&lang).ok()
+                                        })
+                                        .collect(),
                                 };
-                                dbg!(&post);
                                 handler.insert_post(post).await;
                             }
                             CommitEvent::Create {
