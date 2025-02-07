@@ -16,7 +16,7 @@ async fn main() {
 
     let client = Client::new();
 
-    // Fetch the DID JSON
+    // Fetch the DID document JSON
     let did_response = client
         .get(format!("{}/.well-known/did.json", args.local_url))
         .send()
