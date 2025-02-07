@@ -21,7 +21,7 @@ use std::fmt::Debug;
 use std::net::SocketAddr;
 use warp::Filter;
 
-use crate::models::{Did, Embed, Label, Post, Request, Service, Uri};
+use crate::models::{Did, DidDocument, Embed, Label, Post, Request, Service, Uri};
 use crate::Cid;
 use crate::{config::Config, feed_handler::FeedHandler};
 
@@ -164,7 +164,7 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
                                     continue;
                                 };
                                 let post = Post {
-                                    author_did: info.did.to_string(),
+                                    author_did: Did(info.did.to_string()),
                                     cid: Cid(serde_json::to_string(&cid).unwrap()),
                                     uri: Uri(uri),
                                     text: record.text.clone(),
@@ -243,7 +243,7 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
 }
 
 async fn did_json(config: Config) -> Result<impl warp::Reply, warp::Rejection> {
-    Ok(warp::reply::json(&Did {
+    Ok(warp::reply::json(&DidDocument {
         context: vec!["https://www.w3.org/ns/did/v1".to_owned()],
         id: format!("did:web:{}", config.feed_generator_hostname),
         service: vec![Service {

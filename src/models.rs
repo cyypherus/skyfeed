@@ -17,7 +17,7 @@ pub struct Request {
 }
 
 #[derive(Serialize)]
-pub(crate) struct Did {
+pub(crate) struct DidDocument {
     #[serde(rename = "@context")]
     pub(crate) context: Vec<String>,
     pub(crate) id: String,
@@ -35,7 +35,7 @@ pub struct Service {
 
 #[derive(Debug, Clone)]
 pub struct Post {
-    pub author_did: String,
+    pub author_did: Did,
     pub cid: Cid,
     pub uri: Uri,
     pub text: String,
@@ -44,8 +44,12 @@ pub struct Post {
     pub timestamp: DateTime<Utc>,
     pub embed: Option<Embed>,
 }
+
 #[derive(Debug, Clone)]
 pub struct Cid(pub String);
+
+#[derive(Debug, Clone)]
+pub struct Did(pub String);
 
 #[derive(Debug, Clone)]
 pub enum Embed {
