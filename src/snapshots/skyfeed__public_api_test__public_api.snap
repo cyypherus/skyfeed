@@ -3,7 +3,6 @@ source: src/public_api_test.rs
 expression: public_api
 ---
 pub mod skyfeed
-pub use skyfeed::LangTagBuf
 pub struct skyfeed::Cid(pub alloc::string::String)
 impl core::clone::Clone for skyfeed::Cid
 pub fn skyfeed::Cid::clone(&self) -> skyfeed::Cid
@@ -89,7 +88,7 @@ impl<T> yoke::erased::ErasedDestructor for skyfeed::FeedResult where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::FeedResult where V: ppv_lite86::types::MultiLane<T>
 pub fn skyfeed::FeedResult::vzip(self) -> V
 pub struct skyfeed::Post
-pub skyfeed::Post::author_did: alloc::string::String
+pub skyfeed::Post::author_did: skyfeed::models::Did
 pub skyfeed::Post::cid: skyfeed::Cid
 pub skyfeed::Post::embed: core::option::Option<skyfeed::models::Embed>
 pub skyfeed::Post::labels: alloc::vec::Vec<skyfeed::models::Label>
