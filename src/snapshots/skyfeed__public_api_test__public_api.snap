@@ -3,6 +3,155 @@ source: src/public_api_test.rs
 expression: public_api
 ---
 pub mod skyfeed
+pub enum skyfeed::Embed
+pub skyfeed::Embed::External(skyfeed::ExternalEmbed)
+pub skyfeed::Embed::Images(alloc::vec::Vec<skyfeed::ImageEmbed>)
+pub skyfeed::Embed::Quote(skyfeed::QuoteEmbed)
+pub skyfeed::Embed::QuoteWithMedia(skyfeed::QuoteEmbed, skyfeed::MediaEmbed)
+pub skyfeed::Embed::Video(skyfeed::VideoEmbed)
+impl core::clone::Clone for skyfeed::Embed
+pub fn skyfeed::Embed::clone(&self) -> skyfeed::Embed
+impl core::fmt::Debug for skyfeed::Embed
+pub fn skyfeed::Embed::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for skyfeed::Embed
+impl core::marker::Send for skyfeed::Embed
+impl core::marker::Sync for skyfeed::Embed
+impl core::marker::Unpin for skyfeed::Embed
+impl core::panic::unwind_safe::RefUnwindSafe for skyfeed::Embed
+impl core::panic::unwind_safe::UnwindSafe for skyfeed::Embed
+impl<T, U> core::convert::Into<U> for skyfeed::Embed where U: core::convert::From<T>
+pub fn skyfeed::Embed::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for skyfeed::Embed where U: core::convert::Into<T>
+pub type skyfeed::Embed::Error = core::convert::Infallible
+pub fn skyfeed::Embed::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for skyfeed::Embed where U: core::convert::TryFrom<T>
+pub type skyfeed::Embed::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn skyfeed::Embed::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for skyfeed::Embed where T: core::clone::Clone
+pub type skyfeed::Embed::Owned = T
+pub fn skyfeed::Embed::clone_into(&self, target: &mut T)
+pub fn skyfeed::Embed::to_owned(&self) -> T
+impl<T> core::any::Any for skyfeed::Embed where T: 'static + ?core::marker::Sized
+pub fn skyfeed::Embed::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for skyfeed::Embed where T: ?core::marker::Sized
+pub fn skyfeed::Embed::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for skyfeed::Embed where T: ?core::marker::Sized
+pub fn skyfeed::Embed::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for skyfeed::Embed where T: core::clone::Clone
+pub unsafe fn skyfeed::Embed::clone_to_uninit(&self, dst: *mut u8)
+impl<T> core::convert::From<T> for skyfeed::Embed
+pub fn skyfeed::Embed::from(t: T) -> T
+impl<T> icu_provider::any::MaybeSendSync for skyfeed::Embed
+impl<T> tracing::instrument::Instrument for skyfeed::Embed
+impl<T> tracing::instrument::WithSubscriber for skyfeed::Embed
+impl<T> typenum::type_operators::Same for skyfeed::Embed
+pub type skyfeed::Embed::Output = T
+impl<T> yoke::erased::ErasedDestructor for skyfeed::Embed where T: 'static
+impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::Embed where V: ppv_lite86::types::MultiLane<T>
+pub fn skyfeed::Embed::vzip(self) -> V
+pub enum skyfeed::Label
+pub skyfeed::Label::GraphicMedia
+pub skyfeed::Label::Hide
+pub skyfeed::Label::NoUnauthenticated
+pub skyfeed::Label::Nudity
+pub skyfeed::Label::Other(alloc::string::String)
+pub skyfeed::Label::Porn
+pub skyfeed::Label::Sexual
+pub skyfeed::Label::Warn
+impl core::clone::Clone for skyfeed::Label
+pub fn skyfeed::Label::clone(&self) -> skyfeed::Label
+impl core::cmp::Eq for skyfeed::Label
+impl core::cmp::PartialEq for skyfeed::Label
+pub fn skyfeed::Label::eq(&self, other: &skyfeed::Label) -> bool
+impl core::convert::From<alloc::string::String> for skyfeed::Label
+pub fn skyfeed::Label::from(value: alloc::string::String) -> Self
+impl core::fmt::Debug for skyfeed::Label
+pub fn skyfeed::Label::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::StructuralPartialEq for skyfeed::Label
+impl core::marker::Freeze for skyfeed::Label
+impl core::marker::Send for skyfeed::Label
+impl core::marker::Sync for skyfeed::Label
+impl core::marker::Unpin for skyfeed::Label
+impl core::panic::unwind_safe::RefUnwindSafe for skyfeed::Label
+impl core::panic::unwind_safe::UnwindSafe for skyfeed::Label
+impl<Q, K> equivalent::Equivalent<K> for skyfeed::Label where Q: core::cmp::Eq + ?core::marker::Sized, K: core::borrow::Borrow<Q> + ?core::marker::Sized
+pub fn skyfeed::Label::equivalent(&self, key: &K) -> bool
+impl<Q, K> hashbrown::Equivalent<K> for skyfeed::Label where Q: core::cmp::Eq + ?core::marker::Sized, K: core::borrow::Borrow<Q> + ?core::marker::Sized
+pub fn skyfeed::Label::equivalent(&self, key: &K) -> bool
+impl<T, U> core::convert::Into<U> for skyfeed::Label where U: core::convert::From<T>
+pub fn skyfeed::Label::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for skyfeed::Label where U: core::convert::Into<T>
+pub type skyfeed::Label::Error = core::convert::Infallible
+pub fn skyfeed::Label::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for skyfeed::Label where U: core::convert::TryFrom<T>
+pub type skyfeed::Label::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn skyfeed::Label::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for skyfeed::Label where T: core::clone::Clone
+pub type skyfeed::Label::Owned = T
+pub fn skyfeed::Label::clone_into(&self, target: &mut T)
+pub fn skyfeed::Label::to_owned(&self) -> T
+impl<T> core::any::Any for skyfeed::Label where T: 'static + ?core::marker::Sized
+pub fn skyfeed::Label::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for skyfeed::Label where T: ?core::marker::Sized
+pub fn skyfeed::Label::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for skyfeed::Label where T: ?core::marker::Sized
+pub fn skyfeed::Label::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for skyfeed::Label where T: core::clone::Clone
+pub unsafe fn skyfeed::Label::clone_to_uninit(&self, dst: *mut u8)
+impl<T> core::convert::From<T> for skyfeed::Label
+pub fn skyfeed::Label::from(t: T) -> T
+impl<T> icu_provider::any::MaybeSendSync for skyfeed::Label
+impl<T> tracing::instrument::Instrument for skyfeed::Label
+impl<T> tracing::instrument::WithSubscriber for skyfeed::Label
+impl<T> typenum::type_operators::Same for skyfeed::Label
+pub type skyfeed::Label::Output = T
+impl<T> yoke::erased::ErasedDestructor for skyfeed::Label where T: 'static
+impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::Label where V: ppv_lite86::types::MultiLane<T>
+pub fn skyfeed::Label::vzip(self) -> V
+pub enum skyfeed::MediaEmbed
+pub skyfeed::MediaEmbed::External(skyfeed::ExternalEmbed)
+pub skyfeed::MediaEmbed::Images(alloc::vec::Vec<skyfeed::ImageEmbed>)
+pub skyfeed::MediaEmbed::Video(skyfeed::VideoEmbed)
+impl core::clone::Clone for skyfeed::MediaEmbed
+pub fn skyfeed::MediaEmbed::clone(&self) -> skyfeed::MediaEmbed
+impl core::fmt::Debug for skyfeed::MediaEmbed
+pub fn skyfeed::MediaEmbed::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for skyfeed::MediaEmbed
+impl core::marker::Send for skyfeed::MediaEmbed
+impl core::marker::Sync for skyfeed::MediaEmbed
+impl core::marker::Unpin for skyfeed::MediaEmbed
+impl core::panic::unwind_safe::RefUnwindSafe for skyfeed::MediaEmbed
+impl core::panic::unwind_safe::UnwindSafe for skyfeed::MediaEmbed
+impl<T, U> core::convert::Into<U> for skyfeed::MediaEmbed where U: core::convert::From<T>
+pub fn skyfeed::MediaEmbed::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for skyfeed::MediaEmbed where U: core::convert::Into<T>
+pub type skyfeed::MediaEmbed::Error = core::convert::Infallible
+pub fn skyfeed::MediaEmbed::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for skyfeed::MediaEmbed where U: core::convert::TryFrom<T>
+pub type skyfeed::MediaEmbed::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn skyfeed::MediaEmbed::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for skyfeed::MediaEmbed where T: core::clone::Clone
+pub type skyfeed::MediaEmbed::Owned = T
+pub fn skyfeed::MediaEmbed::clone_into(&self, target: &mut T)
+pub fn skyfeed::MediaEmbed::to_owned(&self) -> T
+impl<T> core::any::Any for skyfeed::MediaEmbed where T: 'static + ?core::marker::Sized
+pub fn skyfeed::MediaEmbed::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for skyfeed::MediaEmbed where T: ?core::marker::Sized
+pub fn skyfeed::MediaEmbed::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for skyfeed::MediaEmbed where T: ?core::marker::Sized
+pub fn skyfeed::MediaEmbed::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for skyfeed::MediaEmbed where T: core::clone::Clone
+pub unsafe fn skyfeed::MediaEmbed::clone_to_uninit(&self, dst: *mut u8)
+impl<T> core::convert::From<T> for skyfeed::MediaEmbed
+pub fn skyfeed::MediaEmbed::from(t: T) -> T
+impl<T> icu_provider::any::MaybeSendSync for skyfeed::MediaEmbed
+impl<T> tracing::instrument::Instrument for skyfeed::MediaEmbed
+impl<T> tracing::instrument::WithSubscriber for skyfeed::MediaEmbed
+impl<T> typenum::type_operators::Same for skyfeed::MediaEmbed
+pub type skyfeed::MediaEmbed::Output = T
+impl<T> yoke::erased::ErasedDestructor for skyfeed::MediaEmbed where T: 'static
+impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::MediaEmbed where V: ppv_lite86::types::MultiLane<T>
+pub fn skyfeed::MediaEmbed::vzip(self) -> V
 pub struct skyfeed::Cid(pub alloc::string::String)
 impl core::clone::Clone for skyfeed::Cid
 pub fn skyfeed::Cid::clone(&self) -> skyfeed::Cid
@@ -85,6 +234,51 @@ pub type skyfeed::Did::Output = T
 impl<T> yoke::erased::ErasedDestructor for skyfeed::Did where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::Did where V: ppv_lite86::types::MultiLane<T>
 pub fn skyfeed::Did::vzip(self) -> V
+pub struct skyfeed::ExternalEmbed
+pub skyfeed::ExternalEmbed::description: alloc::string::String
+pub skyfeed::ExternalEmbed::thumbnail: core::option::Option<skyfeed::Cid>
+pub skyfeed::ExternalEmbed::title: alloc::string::String
+pub skyfeed::ExternalEmbed::uri: alloc::string::String
+impl core::clone::Clone for skyfeed::ExternalEmbed
+pub fn skyfeed::ExternalEmbed::clone(&self) -> skyfeed::ExternalEmbed
+impl core::fmt::Debug for skyfeed::ExternalEmbed
+pub fn skyfeed::ExternalEmbed::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for skyfeed::ExternalEmbed
+impl core::marker::Send for skyfeed::ExternalEmbed
+impl core::marker::Sync for skyfeed::ExternalEmbed
+impl core::marker::Unpin for skyfeed::ExternalEmbed
+impl core::panic::unwind_safe::RefUnwindSafe for skyfeed::ExternalEmbed
+impl core::panic::unwind_safe::UnwindSafe for skyfeed::ExternalEmbed
+impl<T, U> core::convert::Into<U> for skyfeed::ExternalEmbed where U: core::convert::From<T>
+pub fn skyfeed::ExternalEmbed::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for skyfeed::ExternalEmbed where U: core::convert::Into<T>
+pub type skyfeed::ExternalEmbed::Error = core::convert::Infallible
+pub fn skyfeed::ExternalEmbed::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for skyfeed::ExternalEmbed where U: core::convert::TryFrom<T>
+pub type skyfeed::ExternalEmbed::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn skyfeed::ExternalEmbed::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for skyfeed::ExternalEmbed where T: core::clone::Clone
+pub type skyfeed::ExternalEmbed::Owned = T
+pub fn skyfeed::ExternalEmbed::clone_into(&self, target: &mut T)
+pub fn skyfeed::ExternalEmbed::to_owned(&self) -> T
+impl<T> core::any::Any for skyfeed::ExternalEmbed where T: 'static + ?core::marker::Sized
+pub fn skyfeed::ExternalEmbed::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for skyfeed::ExternalEmbed where T: ?core::marker::Sized
+pub fn skyfeed::ExternalEmbed::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for skyfeed::ExternalEmbed where T: ?core::marker::Sized
+pub fn skyfeed::ExternalEmbed::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for skyfeed::ExternalEmbed where T: core::clone::Clone
+pub unsafe fn skyfeed::ExternalEmbed::clone_to_uninit(&self, dst: *mut u8)
+impl<T> core::convert::From<T> for skyfeed::ExternalEmbed
+pub fn skyfeed::ExternalEmbed::from(t: T) -> T
+impl<T> icu_provider::any::MaybeSendSync for skyfeed::ExternalEmbed
+impl<T> tracing::instrument::Instrument for skyfeed::ExternalEmbed
+impl<T> tracing::instrument::WithSubscriber for skyfeed::ExternalEmbed
+impl<T> typenum::type_operators::Same for skyfeed::ExternalEmbed
+pub type skyfeed::ExternalEmbed::Output = T
+impl<T> yoke::erased::ErasedDestructor for skyfeed::ExternalEmbed where T: 'static
+impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::ExternalEmbed where V: ppv_lite86::types::MultiLane<T>
+pub fn skyfeed::ExternalEmbed::vzip(self) -> V
 pub struct skyfeed::FeedResult
 pub skyfeed::FeedResult::cursor: core::option::Option<alloc::string::String>
 pub skyfeed::FeedResult::feed: alloc::vec::Vec<skyfeed::Uri>
@@ -128,11 +322,55 @@ pub type skyfeed::FeedResult::Output = T
 impl<T> yoke::erased::ErasedDestructor for skyfeed::FeedResult where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::FeedResult where V: ppv_lite86::types::MultiLane<T>
 pub fn skyfeed::FeedResult::vzip(self) -> V
+pub struct skyfeed::ImageEmbed
+pub skyfeed::ImageEmbed::alt_text: alloc::string::String
+pub skyfeed::ImageEmbed::cid: skyfeed::Cid
+pub skyfeed::ImageEmbed::mime_type: alloc::string::String
+impl core::clone::Clone for skyfeed::ImageEmbed
+pub fn skyfeed::ImageEmbed::clone(&self) -> skyfeed::ImageEmbed
+impl core::fmt::Debug for skyfeed::ImageEmbed
+pub fn skyfeed::ImageEmbed::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for skyfeed::ImageEmbed
+impl core::marker::Send for skyfeed::ImageEmbed
+impl core::marker::Sync for skyfeed::ImageEmbed
+impl core::marker::Unpin for skyfeed::ImageEmbed
+impl core::panic::unwind_safe::RefUnwindSafe for skyfeed::ImageEmbed
+impl core::panic::unwind_safe::UnwindSafe for skyfeed::ImageEmbed
+impl<T, U> core::convert::Into<U> for skyfeed::ImageEmbed where U: core::convert::From<T>
+pub fn skyfeed::ImageEmbed::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for skyfeed::ImageEmbed where U: core::convert::Into<T>
+pub type skyfeed::ImageEmbed::Error = core::convert::Infallible
+pub fn skyfeed::ImageEmbed::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for skyfeed::ImageEmbed where U: core::convert::TryFrom<T>
+pub type skyfeed::ImageEmbed::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn skyfeed::ImageEmbed::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for skyfeed::ImageEmbed where T: core::clone::Clone
+pub type skyfeed::ImageEmbed::Owned = T
+pub fn skyfeed::ImageEmbed::clone_into(&self, target: &mut T)
+pub fn skyfeed::ImageEmbed::to_owned(&self) -> T
+impl<T> core::any::Any for skyfeed::ImageEmbed where T: 'static + ?core::marker::Sized
+pub fn skyfeed::ImageEmbed::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for skyfeed::ImageEmbed where T: ?core::marker::Sized
+pub fn skyfeed::ImageEmbed::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for skyfeed::ImageEmbed where T: ?core::marker::Sized
+pub fn skyfeed::ImageEmbed::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for skyfeed::ImageEmbed where T: core::clone::Clone
+pub unsafe fn skyfeed::ImageEmbed::clone_to_uninit(&self, dst: *mut u8)
+impl<T> core::convert::From<T> for skyfeed::ImageEmbed
+pub fn skyfeed::ImageEmbed::from(t: T) -> T
+impl<T> icu_provider::any::MaybeSendSync for skyfeed::ImageEmbed
+impl<T> tracing::instrument::Instrument for skyfeed::ImageEmbed
+impl<T> tracing::instrument::WithSubscriber for skyfeed::ImageEmbed
+impl<T> typenum::type_operators::Same for skyfeed::ImageEmbed
+pub type skyfeed::ImageEmbed::Output = T
+impl<T> yoke::erased::ErasedDestructor for skyfeed::ImageEmbed where T: 'static
+impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::ImageEmbed where V: ppv_lite86::types::MultiLane<T>
+pub fn skyfeed::ImageEmbed::vzip(self) -> V
 pub struct skyfeed::Post
 pub skyfeed::Post::author_did: skyfeed::Did
 pub skyfeed::Post::cid: skyfeed::Cid
-pub skyfeed::Post::embed: core::option::Option<skyfeed::models::Embed>
-pub skyfeed::Post::labels: alloc::vec::Vec<skyfeed::models::Label>
+pub skyfeed::Post::embed: core::option::Option<skyfeed::Embed>
+pub skyfeed::Post::labels: alloc::vec::Vec<skyfeed::Label>
 pub skyfeed::Post::langs: alloc::vec::Vec<alloc::string::String>
 pub skyfeed::Post::text: alloc::string::String
 pub skyfeed::Post::timestamp: chrono::datetime::DateTime<chrono::offset::utc::Utc>
@@ -177,6 +415,49 @@ pub type skyfeed::Post::Output = T
 impl<T> yoke::erased::ErasedDestructor for skyfeed::Post where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::Post where V: ppv_lite86::types::MultiLane<T>
 pub fn skyfeed::Post::vzip(self) -> V
+pub struct skyfeed::QuoteEmbed
+pub skyfeed::QuoteEmbed::cid: skyfeed::Cid
+pub skyfeed::QuoteEmbed::uri: alloc::string::String
+impl core::clone::Clone for skyfeed::QuoteEmbed
+pub fn skyfeed::QuoteEmbed::clone(&self) -> skyfeed::QuoteEmbed
+impl core::fmt::Debug for skyfeed::QuoteEmbed
+pub fn skyfeed::QuoteEmbed::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for skyfeed::QuoteEmbed
+impl core::marker::Send for skyfeed::QuoteEmbed
+impl core::marker::Sync for skyfeed::QuoteEmbed
+impl core::marker::Unpin for skyfeed::QuoteEmbed
+impl core::panic::unwind_safe::RefUnwindSafe for skyfeed::QuoteEmbed
+impl core::panic::unwind_safe::UnwindSafe for skyfeed::QuoteEmbed
+impl<T, U> core::convert::Into<U> for skyfeed::QuoteEmbed where U: core::convert::From<T>
+pub fn skyfeed::QuoteEmbed::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for skyfeed::QuoteEmbed where U: core::convert::Into<T>
+pub type skyfeed::QuoteEmbed::Error = core::convert::Infallible
+pub fn skyfeed::QuoteEmbed::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for skyfeed::QuoteEmbed where U: core::convert::TryFrom<T>
+pub type skyfeed::QuoteEmbed::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn skyfeed::QuoteEmbed::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for skyfeed::QuoteEmbed where T: core::clone::Clone
+pub type skyfeed::QuoteEmbed::Owned = T
+pub fn skyfeed::QuoteEmbed::clone_into(&self, target: &mut T)
+pub fn skyfeed::QuoteEmbed::to_owned(&self) -> T
+impl<T> core::any::Any for skyfeed::QuoteEmbed where T: 'static + ?core::marker::Sized
+pub fn skyfeed::QuoteEmbed::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for skyfeed::QuoteEmbed where T: ?core::marker::Sized
+pub fn skyfeed::QuoteEmbed::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for skyfeed::QuoteEmbed where T: ?core::marker::Sized
+pub fn skyfeed::QuoteEmbed::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for skyfeed::QuoteEmbed where T: core::clone::Clone
+pub unsafe fn skyfeed::QuoteEmbed::clone_to_uninit(&self, dst: *mut u8)
+impl<T> core::convert::From<T> for skyfeed::QuoteEmbed
+pub fn skyfeed::QuoteEmbed::from(t: T) -> T
+impl<T> icu_provider::any::MaybeSendSync for skyfeed::QuoteEmbed
+impl<T> tracing::instrument::Instrument for skyfeed::QuoteEmbed
+impl<T> tracing::instrument::WithSubscriber for skyfeed::QuoteEmbed
+impl<T> typenum::type_operators::Same for skyfeed::QuoteEmbed
+pub type skyfeed::QuoteEmbed::Output = T
+impl<T> yoke::erased::ErasedDestructor for skyfeed::QuoteEmbed where T: 'static
+impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::QuoteEmbed where V: ppv_lite86::types::MultiLane<T>
+pub fn skyfeed::QuoteEmbed::vzip(self) -> V
 pub struct skyfeed::Request
 pub skyfeed::Request::cursor: core::option::Option<alloc::string::String>
 pub skyfeed::Request::feed: alloc::string::String
@@ -272,6 +553,49 @@ pub type skyfeed::Uri::Output = T
 impl<T> yoke::erased::ErasedDestructor for skyfeed::Uri where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::Uri where V: ppv_lite86::types::MultiLane<T>
 pub fn skyfeed::Uri::vzip(self) -> V
+pub struct skyfeed::VideoEmbed
+pub skyfeed::VideoEmbed::alt_text: alloc::string::String
+pub skyfeed::VideoEmbed::cid: skyfeed::Cid
+impl core::clone::Clone for skyfeed::VideoEmbed
+pub fn skyfeed::VideoEmbed::clone(&self) -> skyfeed::VideoEmbed
+impl core::fmt::Debug for skyfeed::VideoEmbed
+pub fn skyfeed::VideoEmbed::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for skyfeed::VideoEmbed
+impl core::marker::Send for skyfeed::VideoEmbed
+impl core::marker::Sync for skyfeed::VideoEmbed
+impl core::marker::Unpin for skyfeed::VideoEmbed
+impl core::panic::unwind_safe::RefUnwindSafe for skyfeed::VideoEmbed
+impl core::panic::unwind_safe::UnwindSafe for skyfeed::VideoEmbed
+impl<T, U> core::convert::Into<U> for skyfeed::VideoEmbed where U: core::convert::From<T>
+pub fn skyfeed::VideoEmbed::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for skyfeed::VideoEmbed where U: core::convert::Into<T>
+pub type skyfeed::VideoEmbed::Error = core::convert::Infallible
+pub fn skyfeed::VideoEmbed::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for skyfeed::VideoEmbed where U: core::convert::TryFrom<T>
+pub type skyfeed::VideoEmbed::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn skyfeed::VideoEmbed::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for skyfeed::VideoEmbed where T: core::clone::Clone
+pub type skyfeed::VideoEmbed::Owned = T
+pub fn skyfeed::VideoEmbed::clone_into(&self, target: &mut T)
+pub fn skyfeed::VideoEmbed::to_owned(&self) -> T
+impl<T> core::any::Any for skyfeed::VideoEmbed where T: 'static + ?core::marker::Sized
+pub fn skyfeed::VideoEmbed::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for skyfeed::VideoEmbed where T: ?core::marker::Sized
+pub fn skyfeed::VideoEmbed::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for skyfeed::VideoEmbed where T: ?core::marker::Sized
+pub fn skyfeed::VideoEmbed::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for skyfeed::VideoEmbed where T: core::clone::Clone
+pub unsafe fn skyfeed::VideoEmbed::clone_to_uninit(&self, dst: *mut u8)
+impl<T> core::convert::From<T> for skyfeed::VideoEmbed
+pub fn skyfeed::VideoEmbed::from(t: T) -> T
+impl<T> icu_provider::any::MaybeSendSync for skyfeed::VideoEmbed
+impl<T> tracing::instrument::Instrument for skyfeed::VideoEmbed
+impl<T> tracing::instrument::WithSubscriber for skyfeed::VideoEmbed
+impl<T> typenum::type_operators::Same for skyfeed::VideoEmbed
+pub type skyfeed::VideoEmbed::Output = T
+impl<T> yoke::erased::ErasedDestructor for skyfeed::VideoEmbed where T: 'static
+impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::VideoEmbed where V: ppv_lite86::types::MultiLane<T>
+pub fn skyfeed::VideoEmbed::vzip(self) -> V
 pub trait skyfeed::Feed<Handler: skyfeed::FeedHandler + core::clone::Clone + core::marker::Send + core::marker::Sync + 'static>
 pub fn skyfeed::Feed::handler(&mut self) -> Handler
 pub fn skyfeed::Feed::start(&mut self, name: impl core::convert::AsRef<str>, address: impl core::convert::Into<core::net::socket_addr::SocketAddr> + core::fmt::Debug + core::clone::Clone + core::marker::Send) -> impl core::future::future::Future<Output = ()> + core::marker::Send
