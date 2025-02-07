@@ -44,6 +44,47 @@ pub type skyfeed::Cid::Output = T
 impl<T> yoke::erased::ErasedDestructor for skyfeed::Cid where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::Cid where V: ppv_lite86::types::MultiLane<T>
 pub fn skyfeed::Cid::vzip(self) -> V
+pub struct skyfeed::Did(pub alloc::string::String)
+impl core::clone::Clone for skyfeed::Did
+pub fn skyfeed::Did::clone(&self) -> skyfeed::Did
+impl core::fmt::Debug for skyfeed::Did
+pub fn skyfeed::Did::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for skyfeed::Did
+impl core::marker::Send for skyfeed::Did
+impl core::marker::Sync for skyfeed::Did
+impl core::marker::Unpin for skyfeed::Did
+impl core::panic::unwind_safe::RefUnwindSafe for skyfeed::Did
+impl core::panic::unwind_safe::UnwindSafe for skyfeed::Did
+impl<T, U> core::convert::Into<U> for skyfeed::Did where U: core::convert::From<T>
+pub fn skyfeed::Did::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for skyfeed::Did where U: core::convert::Into<T>
+pub type skyfeed::Did::Error = core::convert::Infallible
+pub fn skyfeed::Did::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for skyfeed::Did where U: core::convert::TryFrom<T>
+pub type skyfeed::Did::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn skyfeed::Did::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for skyfeed::Did where T: core::clone::Clone
+pub type skyfeed::Did::Owned = T
+pub fn skyfeed::Did::clone_into(&self, target: &mut T)
+pub fn skyfeed::Did::to_owned(&self) -> T
+impl<T> core::any::Any for skyfeed::Did where T: 'static + ?core::marker::Sized
+pub fn skyfeed::Did::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for skyfeed::Did where T: ?core::marker::Sized
+pub fn skyfeed::Did::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for skyfeed::Did where T: ?core::marker::Sized
+pub fn skyfeed::Did::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for skyfeed::Did where T: core::clone::Clone
+pub unsafe fn skyfeed::Did::clone_to_uninit(&self, dst: *mut u8)
+impl<T> core::convert::From<T> for skyfeed::Did
+pub fn skyfeed::Did::from(t: T) -> T
+impl<T> icu_provider::any::MaybeSendSync for skyfeed::Did
+impl<T> tracing::instrument::Instrument for skyfeed::Did
+impl<T> tracing::instrument::WithSubscriber for skyfeed::Did
+impl<T> typenum::type_operators::Same for skyfeed::Did
+pub type skyfeed::Did::Output = T
+impl<T> yoke::erased::ErasedDestructor for skyfeed::Did where T: 'static
+impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::Did where V: ppv_lite86::types::MultiLane<T>
+pub fn skyfeed::Did::vzip(self) -> V
 pub struct skyfeed::FeedResult
 pub skyfeed::FeedResult::cursor: core::option::Option<alloc::string::String>
 pub skyfeed::FeedResult::feed: alloc::vec::Vec<skyfeed::Uri>
@@ -88,7 +129,7 @@ impl<T> yoke::erased::ErasedDestructor for skyfeed::FeedResult where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::FeedResult where V: ppv_lite86::types::MultiLane<T>
 pub fn skyfeed::FeedResult::vzip(self) -> V
 pub struct skyfeed::Post
-pub skyfeed::Post::author_did: skyfeed::models::Did
+pub skyfeed::Post::author_did: skyfeed::Did
 pub skyfeed::Post::cid: skyfeed::Cid
 pub skyfeed::Post::embed: core::option::Option<skyfeed::models::Embed>
 pub skyfeed::Post::labels: alloc::vec::Vec<skyfeed::models::Label>
