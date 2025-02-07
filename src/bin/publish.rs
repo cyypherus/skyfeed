@@ -109,6 +109,7 @@ async fn main() {
                     accepts_interactions: None,
                     #[allow(unreachable_code)]
                     avatar: avatar.map(|a| a.blob.clone()),
+                    content_mode: None,
                     created_at: Datetime::now(),
                     description: Some(args.description.to_owned()),
                     description_facets: None,
