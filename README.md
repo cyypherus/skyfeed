@@ -205,3 +205,12 @@ To run these, clone this repo & run this command inside the crate directory
 `cargo run --bin publish`
 
 If you'd like to verify your feed server's endpoints _locally_ before you publish, you can also use the [verify](./src/bin/verify.rs) utility.
+
+## Getting all posts
+
+By default, the feed mechanim for Bluesky uses a process called "rehydrating" for its posts. 
+What this means is that instead of passing the whole post objects around, you just pass their cid's. 
+This is useful for clients that consume multiple feeds as you limit the redundant data and media calls you need to make by passing the posts around in their entirety. 
+
+If, however, you want to circumvent this rehydration step for whatever reason, you can get your feed's posts directly with a GET to `/posts`.
+
