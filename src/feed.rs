@@ -5,7 +5,7 @@ use atrium_api::app::bsky::feed::get_feed_skeleton::OutputData as FeedSkeleton;
 use atrium_api::app::bsky::feed::get_feed_skeleton::Parameters as FeedSkeletonQuery;
 use atrium_api::app::bsky::feed::get_feed_skeleton::ParametersData as FeedSkeletonParameters;
 use atrium_api::record::KnownRecord;
-use atrium_api::types::{Object, Union};
+use atrium_api::types::Object;
 use chrono::DateTime;
 use env_logger::Env;
 use jetstream_oxide::exports::Nsid;
@@ -21,7 +21,9 @@ use std::fmt::Debug;
 use std::net::SocketAddr;
 use warp::Filter;
 
-use crate::models::{Did, Label, Post, Request, Service, Uri};
+use crate::models::{Did, Embed, Label, Post, Request, Serializable_Post, Service, Uri};
+use crate::utility_models::{DidDocument, Service};
+use crate::Cid;
 use crate::{config::Config, feed_handler::FeedHandler};
 
 /// A `Feed` stores a `FeedHandler`, handles feed server endpoints & connects to the Firehose using the `start` methods.
@@ -90,7 +92,12 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
                     get_feed_skeleton::<Handler>(query.into(), get_feed_handler.clone())
                 });
 
-            let api = did_json.or(describe_feed_generator).or(get_feed_skeleton);
+            let posts_handler = handler.clone();
+	    let all_posts = warp::path!("posts")
+		.and(warp::get())
+		.and_then(move || get_all_posts(posts_handler.clone()));
+
+            let api = did_json.or(describe_feed_generator).or(get_feed_skeleton).or(all_posts);
 
             info!("Serving feed on {}", format!("{:?}", address));
 
@@ -162,25 +169,25 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
                                     error!("Invalid post timestamp: {time_us}");
                                     continue;
                                 };
-                                handler
-                                    .insert_post(Post {
-                                        author_did: info.did.to_string(),
-                                        cid: serde_json::to_string(&cid).unwrap(),
-                                        uri: Uri(uri),
-                                        text: record.text.clone(),
-                                        labels: record
-                                            .labels
-                                            .as_ref()
-                                            .and_then(|labels| match labels {
-                                                Union::Refs(refs) => Some(refs),
-                                                Union::Unknown(_) => None,
-                                            })
-                                            .map(|label_ref| match label_ref {
-                                                atrium_api::app::bsky::feed::post::RecordLabelsRefs::ComAtprotoLabelDefsSelfLabels(object) => object.values.clone().into_iter().map(|label| Label::from(label.val.clone())).collect::<Vec<Label>>(),
-                                            }).unwrap_or_default(),
-                                        timestamp: time,
-                                    })
-                                    .await;
+                                let post = Post {
+                                    author_did: Did(info.did.to_string()),
+                                    cid: Cid(serde_json::to_string(&cid).unwrap()),
+                                    uri: Uri(uri),
+                                    text: record.text.clone(),
+                                    labels: record
+                                        .labels
+                                        .as_ref()
+                                        .and_then(Label::from_atrium)
+                                        .unwrap_or_default(),
+                                    timestamp: time,
+                                    embed: record.embed.as_ref().and_then(Embed::from_atrium),
+                                    langs: record
+                                        .langs
+                                        .iter()
+                                        .filter_map(|lang| serde_json::to_string(&lang).ok())
+                                        .collect(),
+                                };
+                                handler.insert_post(post).await;
                             }
                             CommitEvent::Create {
                                 info,
@@ -242,7 +249,7 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
 }
 
 async fn did_json(config: Config) -> Result<impl warp::Reply, warp::Rejection> {
-    Ok(warp::reply::json(&Did {
+    Ok(warp::reply::json(&DidDocument {
         context: vec!["https://www.w3.org/ns/did/v1".to_owned()],
         id: format!("did:web:{}", config.feed_generator_hostname),
         service: vec![Service {
@@ -298,4 +305,11 @@ async fn get_feed_skeleton<Handler: FeedHandler>(
             })
             .collect(),
     }))
+}
+
+async fn get_all_posts(
+    handler: impl FeedHandler,
+) -> Result<impl warp::Reply, warp::Rejection> {
+    let posts = handler.get_all_posts().await;
+    Ok(warp::reply::json(&posts))
 }

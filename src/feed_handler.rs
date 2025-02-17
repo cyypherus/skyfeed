@@ -1,4 +1,5 @@
-use crate::models::{FeedResult, Post, Request, Uri};
+use crate::models::{FeedResult, Post, Request, Serializable_Post, Uri};
+use std::error::Error;
 
 /// A feed handler is responsible for
 /// - Storing and managing firehose input.
@@ -13,4 +14,5 @@ pub trait FeedHandler {
     ) -> impl std::future::Future<Output = ()> + Send;
     fn delete_like(&mut self, like_uri: Uri) -> impl std::future::Future<Output = ()> + Send;
     fn serve_feed(&self, request: Request) -> impl std::future::Future<Output = FeedResult> + Send;
+    fn get_all_posts(&self) -> impl std::future::Future<Output = Vec<Serializable_Post>> + Send;
 }
