@@ -21,7 +21,7 @@ use std::fmt::Debug;
 use std::net::SocketAddr;
 use warp::Filter;
 
-use crate::models::{Did, Embed, Label, Post, Request, Serializable_Post, Service, Uri};
+use crate::models::{Did, Embed, Label, Post, Request, Serializable_Post, Uri};
 use crate::utility_models::{DidDocument, Service};
 use crate::Cid;
 use crate::{config::Config, feed_handler::FeedHandler};

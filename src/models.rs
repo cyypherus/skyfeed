@@ -7,6 +7,7 @@ use atrium_api::{
 };
 use chrono::{DateTime, Utc};
 use log::trace;
+use serde::{Serialize};
 
 #[derive(Debug, Clone)]
 pub struct Request {

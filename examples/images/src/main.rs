@@ -72,7 +72,7 @@ impl FeedHandler for MyFeedHandler {
             .clone()
             .into_iter()
             .map(|post| Serializable_Post {
-	      cid: post.cid.clone(),
+	      cid: post.cid.clone().0,
 	      text: post.text.clone(),
 	      timestamp: post.timestamp.timestamp_millis().to_string(),
 	  })
