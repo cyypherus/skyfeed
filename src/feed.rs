@@ -130,7 +130,11 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
                 })
                 .unwrap();
                 let receiver = jetstream.connect().await.unwrap();
-                while let Ok(event) = receiver.recv_async().await {
+                while let Ok(event) = receiver
+                    .recv_async()
+                    .await
+                    .inspect_err(|e| error!("Jetstream error: {}", e))
+                {
                     if let Commit(commit) = event {
                         #[allow(clippy::collapsible_match)]
                         match commit {

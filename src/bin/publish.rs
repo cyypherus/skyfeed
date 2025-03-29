@@ -1,6 +1,6 @@
 use atrium_api::com::atproto::repo::put_record::InputData;
 use atrium_api::{
-    agent::{store::MemorySessionStore, AtpAgent},
+    agent::atp_agent::{store::MemorySessionStore, AtpAgent},
     app::bsky::feed::generator::RecordData,
     types::{
         string::{Datetime, Did, Handle, Nsid},

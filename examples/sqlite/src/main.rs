@@ -1,4 +1,6 @@
-use log::info;
+use log::{info, trace};
+use metrics::counter;
+use metrics_exporter_prometheus::PrometheusBuilder;
 use rusqlite::{params, Connection};
 use skyfeed::{Feed, FeedHandler, FeedResult, Post, Request, Uri};
 use std::{sync::Arc, time::Duration};
@@ -8,6 +10,12 @@ use tokio::sync::Mutex;
 async fn main() {
     let db = Connection::open("feed.db").expect("Failed to open database");
     initialize_db(&db);
+
+    let builder = PrometheusBuilder::new();
+
+    builder
+        .install()
+        .expect("failed to install recorder/exporter");
 
     let db = Arc::new(Mutex::new(db));
 
@@ -23,7 +31,7 @@ async fn main() {
         }
     });
 
-    tokio::join!(feed.start("Cats", ([0, 0, 0, 0], 3030)), cleanup_task)
+    tokio::join!(feed.start("fr", ([0, 0, 0, 0], 3030)), cleanup_task)
         .1
         .expect("Starting tasks failed");
 }
@@ -45,22 +53,25 @@ struct MyFeedHandler {
 
 impl FeedHandler for MyFeedHandler {
     async fn insert_post(&mut self, post: Post) {
-        let cat_regex =
-            regex::RegexBuilder::new("\\b(cats?|kitty|kitties|kittens?|feline|catsofbluesky)\\b")
-                .case_insensitive(true)
-                .build()
-                .unwrap();
-
         let unwanted_regex =
-            regex::RegexBuilder::new("\\b(trump|kamala|harris|biden|democrats?|democratic|republicans?|politics|dems?|aoc|GOP|vance|musk|elon|walz|fascists?|furryart|smut|furries|dnc|RFK)\\b|(right wing|left wing)")
+            regex::RegexBuilder::new(r"\\b(macron|le[- ]?pen|mélenchon|fillon|sarkozy|LREM|RN|gilets\s+jaunes|politique|trudeau|libéraux?|conservateurs?|bloc(?:\s+québécois)?|n(?:ouveau\s+)?parti(?:\s+démocratique)?|constitution(?:nel(?:le)?)?|scandale|gouvernement)\b|(extrême\s+(?:droite|gauche))")
                 .case_insensitive(true)
                 .build()
                 .unwrap();
 
-        if cat_regex.is_match(post.text.as_str())
+        let detected_language = whatlang::detect_lang(&post.text);
+
+        let counter = counter!("posts_received");
+        counter.increment(1);
+
+        if post.langs.iter().any(|lang| lang.contains("fr"))
+            && detected_language == Some(whatlang::Lang::Fra)
             && !unwanted_regex.is_match(post.text.as_str())
             && post.labels.is_empty()
         {
+            let counter = counter!("posts_stored");
+            counter.increment(1);
+
             info!("Storing {post:?}");
             let db = self.db.lock().await;
 
@@ -73,15 +84,19 @@ impl FeedHandler for MyFeedHandler {
     }
 
     async fn delete_post(&mut self, uri: Uri) {
+        let counter = counter!("posts_deleted");
+        counter.increment(1);
         let db = self.db.lock().await;
         db.execute("DELETE FROM posts WHERE uri = ?1", params![uri.0])
             .expect("Failed to delete post");
     }
 
     async fn like_post(&mut self, like_uri: Uri, liked_post_uri: Uri) {
+        let counter = counter!("likes_created");
+        counter.increment(1);
         let db = self.db.lock().await;
         db.execute(
-            "INSERT INTO likes (post_uri, like_uri)
+            "INSERT OR REPLACE INTO likes (post_uri, like_uri)
              SELECT ?1, ?2
              WHERE EXISTS (SELECT 1 FROM posts WHERE uri = ?1)",
             params![liked_post_uri.0, like_uri.0],
@@ -90,6 +105,8 @@ impl FeedHandler for MyFeedHandler {
     }
 
     async fn delete_like(&mut self, like_uri: Uri) {
+        let counter = counter!("likes_deleted");
+        counter.increment(1);
         let db = self.db.lock().await;
         db.execute("DELETE FROM likes WHERE like_uri = ?1", params![like_uri.0])
             .expect("Failed to delete like");
@@ -98,32 +115,38 @@ impl FeedHandler for MyFeedHandler {
     async fn serve_feed(&self, request: Request) -> FeedResult {
         info!("Serving {request:?}");
 
+        let counter = counter!("feed_requests");
+        counter.increment(1);
+
         let db = self.db.lock().await;
         let mut stmt = db
             .prepare(
                 "
                 WITH ranked_posts AS (
-                    SELECT
-                        uri,
-                        timestamp,
-                        COUNT(like_uri) AS likes
-                    FROM posts
-                    LEFT JOIN likes ON posts.uri = likes.post_uri
-                    GROUP BY posts.uri
-                    HAVING COUNT(like_uri) > 0
+                  SELECT
+                    posts.uri,
+                    posts.timestamp,
+                    COUNT(likes.like_uri) AS likes
+                  FROM posts
+                  LEFT JOIN likes ON posts.uri = likes.post_uri
+                  GROUP BY posts.uri
+                  HAVING COUNT(likes.like_uri) > 0
                 ),
                 sorted_posts AS (
-                    SELECT
-                        uri,
-                        timestamp,
-                        likes,
-                        PERCENT_RANK() OVER (ORDER BY likes DESC) AS rank
-                    FROM ranked_posts
+                  SELECT
+                    uri,
+                    timestamp,
+                    likes,
+                    PERCENT_RANK() OVER (ORDER BY likes DESC) AS rank
+                  FROM ranked_posts
                 )
                 SELECT uri, likes
                 FROM sorted_posts
-                WHERE rank <= 0.05
-                ORDER BY timestamp DESC;
+                ORDER BY
+                  CASE WHEN rank <= 0.05 THEN 0 ELSE 1 END,
+                  likes DESC,
+                  timestamp DESC
+                LIMIT 20;
              ",
             )
             .expect("Failed to prepare statement");
@@ -183,7 +206,10 @@ async fn cleanup_posts(db: &Arc<Mutex<Connection>>) {
         )
         .expect("Failed to clean up old posts");
 
-    info!("Cleaned up {cleaned_posts} posts");
+    let counter = counter!("cleaned_posts");
+    counter.increment(cleaned_posts as u64);
+
+    trace!("Cleaned up {cleaned_posts} posts");
 }
 
 fn initialize_db(db: &Connection) {
