@@ -142,11 +142,8 @@ impl FeedHandler for MyFeedHandler {
                 )
                 SELECT uri, likes
                 FROM sorted_posts
-                ORDER BY
-                  CASE WHEN rank <= 0.05 THEN 0 ELSE 1 END,
-                  likes DESC,
-                  timestamp DESC
-                LIMIT 20;
+                WHERE rank <= 0.05
+                ORDER BY timestamp DESC;
              ",
             )
             .expect("Failed to prepare statement");
