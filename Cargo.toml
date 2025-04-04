@@ -37,7 +37,7 @@ path = "examples/sqlite/src/main.rs"
 required-features = ["examples"]
 
 [dependencies]
-atrium-api = "=0.24.10"
+atrium-api = "0.25.2"
 dotenv = "0.15.0"
 env_logger = "0.11.5"
 jetstream-oxide = "0.1.1"
