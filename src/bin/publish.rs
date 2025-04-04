@@ -1,6 +1,7 @@
 use atrium_api::com::atproto::repo::put_record::InputData;
+use atrium_api::types::string::RecordKey;
 use atrium_api::{
-    agent::{store::MemorySessionStore, AtpAgent},
+    agent::atp_agent::{store::MemorySessionStore, AtpAgent},
     app::bsky::feed::generator::RecordData,
     types::{
         string::{Datetime, Did, Handle, Nsid},
@@ -50,6 +51,7 @@ async fn main() {
     let handle = args.handle;
     let password = args.app_password;
     let feed_host_name = args.hostname;
+    let record_key = RecordKey::new(args.name.to_owned()).expect("Invalid record key name.");
 
     println!("Logging in...");
 
@@ -122,7 +124,7 @@ async fn main() {
                 repo: atrium_api::types::string::AtIdentifier::Did(
                     publisher_did.to_owned().did.clone(),
                 ),
-                rkey: args.name.to_owned(),
+                rkey: record_key,
                 swap_commit: None,
                 swap_record: None,
                 validate: None,

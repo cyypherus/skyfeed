@@ -146,25 +146,6 @@ checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
 name = "atrium-api"
-version = "0.24.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c5d74937642f6b21814e82d80f54d55ebd985b681bffbe27c8a76e726c3c4db"
-dependencies = [
- "atrium-xrpc",
- "chrono",
- "http 1.2.0",
- "ipld-core",
- "langtag",
- "regex",
- "serde",
- "serde_bytes",
- "serde_json",
- "thiserror 1.0.69",
- "trait-variant",
-]
-
-[[package]]
-name = "atrium-api"
 version = "0.25.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0d4eb9b4787aba546015c8ccda1d3924c157cee13d67848997fba74ac8144a07"
@@ -1340,12 +1321,12 @@ checksum = "d75a2a4b1b190afb6f5425f10f6a8f959d2ea0b9c2b1d79553551850539e4674"
 
 [[package]]
 name = "jetstream-oxide"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cbde770c76b32262a837d968850d29232189844f4e11a3f02a3d87473929f7e9"
+checksum = "a267b4f381f1db945e9eb6b9ff0f3070950cc01521fef6265556b6a683e41e13"
 dependencies = [
  "async-trait",
- "atrium-api 0.24.10",
+ "atrium-api",
  "chrono",
  "flume",
  "futures-util",
@@ -2262,7 +2243,7 @@ name = "skyfeed"
 version = "0.6.0"
 dependencies = [
  "anyhow",
- "atrium-api 0.25.2",
+ "atrium-api",
  "atrium-xrpc-client",
  "chrono",
  "clap",

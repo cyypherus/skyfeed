@@ -1,7 +1,7 @@
 use anyhow::Result;
 use atrium_api::{
-    agent::{store::MemorySessionStore, AtpAgent},
-    types::string::{Handle, Nsid},
+    agent::atp_agent::{store::MemorySessionStore, AtpAgent},
+    types::string::{Handle, Nsid, RecordKey},
 };
 use clap::Parser;
 
@@ -28,6 +28,8 @@ async fn main() -> Result<()> {
 
     let handle = args.handle;
     let password = args.app_password;
+
+    let record_key = RecordKey::new(args.name.to_owned()).expect("Invalid record key name.");
 
     println!("Logging in");
 
@@ -62,7 +64,7 @@ async fn main() -> Result<()> {
                 repo: atrium_api::types::string::AtIdentifier::Did(
                     publisher_did.to_owned().did.clone(),
                 ),
-                rkey: args.name.to_owned(),
+                rkey: record_key,
                 swap_commit: None,
                 swap_record: None,
             }
