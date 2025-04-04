@@ -283,7 +283,7 @@ async fn get_feed_skeleton<Handler: FeedHandler>(
         .serve_feed(Request {
             cursor: query.cursor.clone(),
             feed: query.feed.clone(),
-            limit: query.limit,
+            limit: query.limit.map(u8::from),
         })
         .await;
     Ok::<warp::reply::Json, warp::Rejection>(warp::reply::json(&FeedSkeleton {

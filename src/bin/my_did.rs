@@ -1,6 +1,6 @@
 use anyhow::Result;
 use atrium_api::{
-    agent::{store::MemorySessionStore, AtpAgent},
+    agent::atp_agent::{store::MemorySessionStore, AtpAgent},
     types::string::Handle,
 };
 use clap::Parser;
