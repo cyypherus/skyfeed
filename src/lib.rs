@@ -5,6 +5,7 @@ mod models;
 mod public_api_test;
 mod utility_models;
 
+pub use config::Config;
 pub use feed::Feed;
 pub use feed_handler::FeedHandler;
 pub use models::*;

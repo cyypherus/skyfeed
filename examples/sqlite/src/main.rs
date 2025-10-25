@@ -1,6 +1,7 @@
 use log::{info, trace};
 use rusqlite::{params, Connection};
 use skyfeed::{Feed, FeedHandler, FeedResult, Post, Request, Uri};
+use std::env;
 use std::{sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 
@@ -23,9 +24,23 @@ async fn main() {
         }
     });
 
-    tokio::join!(feed.start("fr", ([0, 0, 0, 0], 3030)), cleanup_task)
-        .1
-        .expect("Starting tasks failed");
+    let publisher_did = env::var("PUBLISHER_DID").expect("PUBLISHER_DID env var not set");
+    let feed_generator_hostname =
+        env::var("FEED_GENERATOR_HOSTNAME").expect("FEED_GENERATOR_HOSTNAME env var not set");
+
+    tokio::join!(
+        feed.start_with_config(
+            "fr",
+            Config {
+                publisher_did,
+                feed_generator_hostname
+            },
+            ([0, 0, 0, 0], 3030)
+        ),
+        cleanup_task
+    )
+    .1
+    .expect("Starting tasks failed");
 }
 
 struct MyFeed {
