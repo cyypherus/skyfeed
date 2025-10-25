@@ -303,5 +303,6 @@ async fn get_feed_skeleton<Handler: FeedHandler>(
                 })
             })
             .collect(),
+        req_id: None,
     }))
 }

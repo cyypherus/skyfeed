@@ -38,7 +38,7 @@ path = "examples/sqlite/src/main.rs"
 required-features = ["examples"]
 
 [dependencies]
-atrium-api = "0.25.0"
+atrium-api = "0.25.6"
 dotenv = "0.15.0"
 env_logger = "0.11.5"
 jetstream-oxide = { git = "https://github.com/videah/jetstream-oxide", rev = "7f21cfae9d8fe193ceb42fb04e511f45ac23764a" }

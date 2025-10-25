@@ -1,4 +1,5 @@
 use atrium_api::com::atproto::repo::put_record::InputData;
+use atrium_api::types::string::RecordKey;
 use atrium_api::{
     agent::atp_agent::{store::MemorySessionStore, AtpAgent},
     app::bsky::feed::generator::RecordData,
@@ -122,7 +123,7 @@ async fn main() {
                 repo: atrium_api::types::string::AtIdentifier::Did(
                     publisher_did.to_owned().did.clone(),
                 ),
-                rkey: args.name.to_owned(),
+                rkey: RecordKey::new(args.name.to_owned()).expect("Invalid RecordKey"),
                 swap_commit: None,
                 swap_record: None,
                 validate: None,
