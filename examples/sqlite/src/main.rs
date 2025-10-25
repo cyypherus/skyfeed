@@ -1,6 +1,4 @@
 use log::{info, trace};
-use metrics::counter;
-use metrics_exporter_prometheus::PrometheusBuilder;
 use rusqlite::{params, Connection};
 use skyfeed::{Feed, FeedHandler, FeedResult, Post, Request, Uri};
 use std::{sync::Arc, time::Duration};
@@ -10,12 +8,6 @@ use tokio::sync::Mutex;
 async fn main() {
     let db = Connection::open("feed.db").expect("Failed to open database");
     initialize_db(&db);
-
-    let builder = PrometheusBuilder::new();
-
-    builder
-        .install()
-        .expect("failed to install recorder/exporter");
 
     let db = Arc::new(Mutex::new(db));
 
@@ -61,17 +53,11 @@ impl FeedHandler for MyFeedHandler {
 
         let detected_language = whatlang::detect_lang(&post.text);
 
-        let counter = counter!("posts_received");
-        counter.increment(1);
-
         if post.langs.iter().any(|lang| lang.contains("fr"))
             && detected_language == Some(whatlang::Lang::Fra)
             && !unwanted_regex.is_match(post.text.as_str())
             && post.labels.is_empty()
         {
-            let counter = counter!("posts_stored");
-            counter.increment(1);
-
             info!("Storing {post:?}");
             let db = self.db.lock().await;
 
@@ -84,16 +70,12 @@ impl FeedHandler for MyFeedHandler {
     }
 
     async fn delete_post(&mut self, uri: Uri) {
-        let counter = counter!("posts_deleted");
-        counter.increment(1);
         let db = self.db.lock().await;
         db.execute("DELETE FROM posts WHERE uri = ?1", params![uri.0])
             .expect("Failed to delete post");
     }
 
     async fn like_post(&mut self, like_uri: Uri, liked_post_uri: Uri) {
-        let counter = counter!("likes_created");
-        counter.increment(1);
         let db = self.db.lock().await;
         db.execute(
             "INSERT OR REPLACE INTO likes (post_uri, like_uri)
@@ -105,8 +87,6 @@ impl FeedHandler for MyFeedHandler {
     }
 
     async fn delete_like(&mut self, like_uri: Uri) {
-        let counter = counter!("likes_deleted");
-        counter.increment(1);
         let db = self.db.lock().await;
         db.execute("DELETE FROM likes WHERE like_uri = ?1", params![like_uri.0])
             .expect("Failed to delete like");
@@ -114,9 +94,6 @@ impl FeedHandler for MyFeedHandler {
 
     async fn serve_feed(&self, request: Request) -> FeedResult {
         info!("Serving {request:?}");
-
-        let counter = counter!("feed_requests");
-        counter.increment(1);
 
         let db = self.db.lock().await;
         let mut stmt = db
@@ -202,9 +179,6 @@ async fn cleanup_posts(db: &Arc<Mutex<Connection>>) {
             [],
         )
         .expect("Failed to clean up old posts");
-
-    let counter = counter!("cleaned_posts");
-    counter.increment(cleaned_posts as u64);
 
     trace!("Cleaned up {cleaned_posts} posts");
 }
