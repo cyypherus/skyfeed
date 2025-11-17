@@ -1,13 +1,13 @@
-use log::{info, trace};
+use log::info;
 use rusqlite::{params, Connection};
-use skyfeed::{Feed, FeedHandler, FeedResult, Post, Request, Uri};
+use skyfeed::{Config, Feed, FeedHandler, FeedResult, Post, Request, Uri};
 use std::env;
 use std::{sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 
 #[tokio::main]
 async fn main() {
-    let db = Connection::open("feed.db").expect("Failed to open database");
+    let db = Connection::open("/space/feed.db").expect("Failed to open database");
     initialize_db(&db);
 
     let db = Arc::new(Mutex::new(db));
@@ -195,7 +195,7 @@ async fn cleanup_posts(db: &Arc<Mutex<Connection>>) {
         )
         .expect("Failed to clean up old posts");
 
-    trace!("Cleaned up {cleaned_posts} posts");
+    info!("Cleaned up {cleaned_posts} posts");
 }
 
 fn initialize_db(db: &Connection) {

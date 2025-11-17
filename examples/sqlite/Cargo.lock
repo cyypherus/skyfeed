@@ -2391,7 +2391,7 @@ checksum = "c1e9a774a6c28142ac54bb25d25562e6bcf957493a184f15ad4eebccb23e410a"
 [[package]]
 name = "skyfeed"
 version = "0.6.0"
-source = "git+https://github.com/cyypherus/skyfeed.git?branch=french-feed#2e09079f040746eb3ddafa0670b8a04c6172e870"
+source = "git+https://github.com/cyypherus/skyfeed.git?branch=french-feed#78c598806a91318dfe83161f809adb0ae2bde19d"
 dependencies = [
  "anyhow",
  "atrium-api",
