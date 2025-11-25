@@ -1,4 +1,3 @@
-use atrium_api::types::string::RecordKey;
 use atrium_api::types::Collection;
 use futures::StreamExt;
 use tokio::net::TcpStream;
@@ -8,7 +7,7 @@ use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 
 use atrium_api::app::bsky::feed::{self, Like};
 use atrium_api::com::atproto::sync::subscribe_repos::{Commit, NSID};
-use atrium_repo::{blockstore::CarStore, Repository};
+use atrium_api::types::CidLink;
 
 use crate::models::{Did, Embed, Label, Post, Uri};
 use crate::Cid;
@@ -181,7 +180,6 @@ pub enum FirehoseError {
     WebSocket(tokio_tungstenite::tungstenite::Error),
     Io(std::io::Error),
     CarStore(String),
-    Repository(String),
 }
 
 impl std::fmt::Display for FirehoseError {
@@ -191,7 +189,6 @@ impl std::fmt::Display for FirehoseError {
             FirehoseError::WebSocket(e) => write!(f, "websocket error: {}", e),
             FirehoseError::Io(e) => write!(f, "io error: {}", e),
             FirehoseError::CarStore(msg) => write!(f, "car store error: {}", msg),
-            FirehoseError::Repository(msg) => write!(f, "repository error: {}", msg),
         }
     }
 }
@@ -231,12 +228,7 @@ impl FirehoseConnector {
         let (stream, _) = connect_async(format!("wss://bsky.network/xrpc/{NSID}")).await?;
         let mut subscription = RepoSubscription { stream };
 
-        loop {
-            let message = match subscription.next().await {
-                Some(msg) => msg,
-                None => continue,
-            };
-
+        while let Some(message) = subscription.next().await {
             match message {
                 Ok(Frame::Message(Some(t), message)) => {
                     if t.as_str() == "#commit" {
@@ -271,92 +263,106 @@ impl FirehoseConnector {
         commit: &Commit,
         tx: &mpsc::Sender<FirehoseEvent>,
     ) -> Result<(), FirehoseError> {
-        let mut repo = Repository::open(
-            CarStore::open(std::io::Cursor::new(commit.blocks.as_slice()))
-                .await
-                .map_err(|e| FirehoseError::CarStore(e.to_string()))?,
-            commit.commit.0,
-        )
-        .await
-        .map_err(|e| FirehoseError::Repository(e.to_string()))?;
+        let mut blocks = commit.blocks.as_slice();
+        let (items, _) = rs_car::car_read_all(&mut blocks, true)
+            .await
+            .map_err(|e| FirehoseError::CarStore(e.to_string()))?;
 
         for op in &commit.ops {
             let mut s = op.path.split('/');
             let collection = s.next().expect("op.path is empty");
             let rkey = s.next().expect("no record key");
-
             let action = op.action.as_str();
 
             match (collection, action) {
                 (feed::Post::NSID, "create") => {
-                    let rkey = RecordKey::new(rkey.to_string()).expect("invalid record key");
-                    if let Some(record) = repo
-                        .get::<feed::Post>(rkey.clone())
-                        .await
-                        .map_err(|e| FirehoseError::Repository(e.to_string()))?
-                    {
-                        let uri = format!(
-                            "at://{}/{}/{}",
-                            commit.repo.as_str(),
-                            collection,
-                            rkey.as_str()
+                    if let Some((_, item_data)) = items.iter().find(|(cid, _)| {
+                        let converted_cid = CidLink(
+                            cid.to_string()
+                                .parse()
+                                .unwrap_or_else(|_| panic!("invalid CID: {}", cid)),
                         );
+                        Some(converted_cid) == op.cid
+                    }) {
+                        match serde_ipld_dagcbor::from_reader(&mut item_data.clone().as_slice()) {
+                            Ok(record) => {
+                                let record: feed::post::Record = record;
+                                let uri = format!(
+                                    "at://{}/{}/{}",
+                                    commit.repo.as_str(),
+                                    collection,
+                                    rkey
+                                );
 
-                        let timestamp = DateTime::parse_from_rfc3339(record.created_at.as_str())
-                            .ok()
-                            .map(|dt| dt.with_timezone(&chrono::Utc))
-                            .unwrap_or_else(|| chrono::Utc::now());
+                                let timestamp =
+                                    DateTime::parse_from_rfc3339(record.created_at.as_str())
+                                        .ok()
+                                        .map(|dt| dt.with_timezone(&chrono::Utc))
+                                        .unwrap_or_else(|| chrono::Utc::now());
 
-                        let post = Post {
-                            author_did: Did(commit.repo.as_str().to_string()),
-                            cid: Cid(serde_json::to_string(&op.cid).unwrap()),
-                            uri: Uri(uri),
-                            text: record.text.clone(),
-                            labels: record
-                                .labels
-                                .as_ref()
-                                .and_then(Label::from_atrium)
-                                .unwrap_or_default(),
-                            timestamp,
-                            embed: record.embed.as_ref().and_then(Embed::from_atrium),
-                            langs: record
-                                .langs
-                                .iter()
-                                .filter_map(|lang| serde_json::to_string(&lang).ok())
-                                .collect(),
-                        };
-                        let _ = tx.send(FirehoseEvent::Post(post)).await;
+                                let post = Post {
+                                    author_did: Did(commit.repo.as_str().to_string()),
+                                    cid: Cid(serde_json::to_string(&op.cid).unwrap()),
+                                    uri: Uri(uri),
+                                    text: record.text.clone(),
+                                    labels: record
+                                        .labels
+                                        .as_ref()
+                                        .and_then(Label::from_atrium)
+                                        .unwrap_or_default(),
+                                    timestamp,
+                                    embed: record.embed.as_ref().and_then(Embed::from_atrium),
+                                    langs: record
+                                        .langs
+                                        .iter()
+                                        .filter_map(|lang| serde_json::to_string(&lang).ok())
+                                        .collect(),
+                                };
+                                let _ = tx.send(FirehoseEvent::Post(post)).await;
+                            }
+                            Err(_) => {
+                                log::error!("Failed to deserialize post record for {}", rkey);
+                            }
+                        }
                     }
                 }
                 (feed::Post::NSID, "delete") => {
-                    let rkey_str = rkey.to_string();
-                    let uri = format!("at://{}/{}/{}", commit.repo.as_str(), collection, rkey_str);
+                    let uri = format!("at://{}/{}/{}", commit.repo.as_str(), collection, rkey);
                     let _ = tx.send(FirehoseEvent::DeletePost(Uri(uri))).await;
                 }
                 (Like::NSID, "create") => {
-                    let rkey = RecordKey::new(rkey.to_string()).expect("invalid record key");
-                    if let Some(record) = repo
-                        .get::<feed::Like>(rkey.clone())
-                        .await
-                        .map_err(|e| FirehoseError::Repository(e.to_string()))?
-                    {
-                        let uri = format!(
-                            "at://{}/{}/{}",
-                            commit.repo.as_str(),
-                            collection,
-                            rkey.as_str()
+                    if let Some((_, item_data)) = items.iter().find(|(cid, _)| {
+                        let converted_cid = CidLink(
+                            cid.to_string()
+                                .parse()
+                                .unwrap_or_else(|_| panic!("invalid CID: {}", cid)),
                         );
-                        let _ = tx
-                            .send(FirehoseEvent::Like(
-                                Uri(uri),
-                                Uri(record.subject.uri.clone()),
-                            ))
-                            .await;
+                        Some(converted_cid) == op.cid
+                    }) {
+                        match serde_ipld_dagcbor::from_reader(&mut item_data.clone().as_slice()) {
+                            Ok(record) => {
+                                let record: feed::like::Record = record;
+                                let uri = format!(
+                                    "at://{}/{}/{}",
+                                    commit.repo.as_str(),
+                                    collection,
+                                    rkey
+                                );
+                                let _ = tx
+                                    .send(FirehoseEvent::Like(
+                                        Uri(uri),
+                                        Uri(record.subject.uri.clone()),
+                                    ))
+                                    .await;
+                            }
+                            Err(_) => {
+                                log::error!("Failed to deserialize like record for {}", rkey);
+                            }
+                        }
                     }
                 }
                 (Like::NSID, "delete") => {
-                    let rkey_str = rkey.to_string();
-                    let uri = format!("at://{}/{}/{}", commit.repo.as_str(), collection, rkey_str);
+                    let uri = format!("at://{}/{}/{}", commit.repo.as_str(), collection, rkey);
                     let _ = tx.send(FirehoseEvent::DeleteLike(Uri(uri))).await;
                 }
                 _ => {}

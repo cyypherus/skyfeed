@@ -36,8 +36,8 @@ struct MyPost {
 
 impl FeedHandler for MyFeedHandler {
     async fn insert_post(&mut self, post: Post) {
+        println!("📝 POST: {}", post.text);
         if post.text.to_lowercase().contains(" cat ") {
-            info!("Storing {post:?}");
             const MAX_POSTS: usize = 100;
 
             let mut posts = self.posts.lock().await;
@@ -54,6 +54,7 @@ impl FeedHandler for MyFeedHandler {
     }
 
     async fn delete_post(&mut self, uri: Uri) {
+        println!("🗑️  DELETE POST: {}", uri.0);
         self.posts
             .lock()
             .await
@@ -61,6 +62,7 @@ impl FeedHandler for MyFeedHandler {
     }
 
     async fn like_post(&mut self, like_uri: Uri, liked_post_uri: Uri) {
+        // println!("❤️  LIKE: {} likes {}", like_uri.0, liked_post_uri.0);
         if let Some(post_with_likes) = self
             .posts
             .lock()
@@ -69,10 +71,12 @@ impl FeedHandler for MyFeedHandler {
             .find(|p| p.post.uri == liked_post_uri)
         {
             post_with_likes.likes.insert(like_uri);
+            dbg!(post_with_likes.likes.len());
         }
     }
 
     async fn delete_like(&mut self, like_uri: Uri) {
+        println!("💔 DELETE LIKE: {}", like_uri.0);
         let mut posts = self.posts.lock().await;
         for post_with_likes in posts.iter_mut() {
             post_with_likes.likes.remove(&like_uri);

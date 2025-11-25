@@ -51,6 +51,7 @@ futures = "0.3.31"
 warp = "0.3.7"
 
 clap = { version = "4.5.3", features = ["derive"] }
+anyhow = "1.0.81"
 reqwest = "0.12.9"
 atrium-xrpc-client = "0.5.10"
 chrono = "0.4.39"
@@ -69,3 +70,4 @@ rustdoc-json = { version = "0.9.4", optional = true }
 rustup-toolchain = { version = "0.1.9", optional = true }
 rustls = "0.23.35"
 serde_ipld_dagcbor = "0.6.0"
+rs-car = "0.1"

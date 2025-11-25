@@ -122,6 +122,12 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
                         FirehoseEvent::DeletePost(uri) => {
                             h.delete_post(uri).await;
                         }
+                        FirehoseEvent::Like(like_uri, post_uri) => {
+                            h.like_post(post_uri, like_uri).await;
+                        }
+                        FirehoseEvent::DeleteLike(uri) => {
+                            h.delete_like(uri).await;
+                        }
                     }
                 }
             });
