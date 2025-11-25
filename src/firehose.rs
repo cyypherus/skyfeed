@@ -208,9 +208,46 @@ impl FirehoseConnector {
         let (stream, _) = connect_async(format!("wss://bsky.network/xrpc/{NSID}"))
             .await
             .map_err(|e| FirehoseError::WebSocket(e))?;
-        let mut subscription = RepoSubscription { stream };
+        let subscription = RepoSubscription { stream };
 
+        let (frame_tx, frame_rx) = mpsc::channel(10000);
+
+        let receive_task = tokio::spawn(Self::receive_frames(subscription, frame_tx));
+        let parse_task = tokio::spawn(Self::parse_frames(frame_rx, tx));
+
+        tokio::select! {
+            receive_result = receive_task => {
+                receive_result.map_err(|_| FirehoseError::WebSocket(
+                    tokio_tungstenite::tungstenite::Error::ConnectionClosed
+                ))??;
+            }
+            parse_result = parse_task => {
+                parse_result.map_err(|_| FirehoseError::WebSocket(
+                    tokio_tungstenite::tungstenite::Error::ConnectionClosed
+                ))??;
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn receive_frames(
+        mut subscription: RepoSubscription,
+        frame_tx: mpsc::Sender<Result<Frame, FirehoseError>>,
+    ) -> Result<(), FirehoseError> {
         while let Some(message) = subscription.next().await {
+            if frame_tx.send(message).await.is_err() {
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    async fn parse_frames(
+        mut frame_rx: mpsc::Receiver<Result<Frame, FirehoseError>>,
+        tx: mpsc::Sender<FirehoseEvent>,
+    ) -> Result<(), FirehoseError> {
+        while let Some(message) = frame_rx.recv().await {
             match message {
                 Ok(Frame::Message(Some(t), message)) => {
                     if t.as_str() == "#commit" {
@@ -229,12 +266,13 @@ impl FirehoseConnector {
                     }
                 }
                 Ok(Frame::Message(None, _msg)) => (),
-                Ok(Frame::Error(_e)) => {
-                    println!("received error frame");
+                Ok(Frame::Error(e)) => {
+                    log::error!("Received error frame: {e:?}");
                     break;
                 }
                 Err(e) => {
-                    println!("error {e}");
+                    log::error!("Error receiving frames {e}");
+                    return Err(e);
                 }
             }
         }
@@ -259,11 +297,10 @@ impl FirehoseConnector {
             match (collection, action) {
                 (feed::Post::NSID, "create") => {
                     if let Some((_, item_data)) = items.iter().find(|(cid, _)| {
-                        let converted_cid = CidLink(
-                            cid.to_string()
-                                .parse()
-                                .unwrap_or_else(|_| panic!("invalid CID: {}", cid)),
-                        );
+                        let converted_cid = match cid.to_string().parse() {
+                            Ok(parsed) => CidLink(parsed),
+                            Err(_) => return false,
+                        };
                         Some(converted_cid) == op.cid
                     }) {
                         match serde_ipld_dagcbor::from_reader(&mut item_data.clone().as_slice()) {
@@ -282,9 +319,16 @@ impl FirehoseConnector {
                                         .map(|dt| dt.with_timezone(&chrono::Utc))
                                         .unwrap_or_else(|| chrono::Utc::now());
 
+                                let cid_str = match serde_json::to_string(&op.cid) {
+                                    Ok(s) => s,
+                                    Err(e) => {
+                                        log::error!("Failed to serialize CID for {}: {}", rkey, e);
+                                        continue;
+                                    }
+                                };
                                 let post = Post {
                                     author_did: Did(commit.repo.as_str().to_string()),
-                                    cid: Cid(serde_json::to_string(&op.cid).unwrap()),
+                                    cid: Cid(cid_str),
                                     uri: Uri(uri),
                                     text: record.text.clone(),
                                     labels: record
@@ -314,11 +358,10 @@ impl FirehoseConnector {
                 }
                 (Like::NSID, "create") => {
                     if let Some((_, item_data)) = items.iter().find(|(cid, _)| {
-                        let converted_cid = CidLink(
-                            cid.to_string()
-                                .parse()
-                                .unwrap_or_else(|_| panic!("invalid CID: {}", cid)),
-                        );
+                        let converted_cid = match cid.to_string().parse() {
+                            Ok(parsed) => CidLink(parsed),
+                            Err(_) => return false,
+                        };
                         Some(converted_cid) == op.cid
                     }) {
                         match serde_ipld_dagcbor::from_reader(&mut item_data.clone().as_slice()) {
