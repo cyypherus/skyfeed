@@ -11,10 +11,10 @@ use std::fmt::Debug;
 use std::net::SocketAddr;
 use warp::Filter;
 
+use crate::firehose::{FirehoseConnector, FirehoseEvent};
 use crate::models::Request;
 use crate::utility_models::{DidDocument, Service};
 use crate::{config::Config, feed_handler::FeedHandler};
-use crate::firehose::{FirehoseConnector, FirehoseEvent};
 
 /// A `Feed` stores a `FeedHandler`, handles feed server endpoints & connects to the Firehose using the `start` methods.
 pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
@@ -108,9 +108,9 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
                 }
             }));
             let feed_server = warp::serve(routes);
-            
+
             let (tx, mut rx) = tokio::sync::mpsc::channel(1000);
-            
+
             let handler_clone = handler.clone();
             let event_handler = tokio::spawn(async move {
                 while let Some(event) = rx.recv().await {
@@ -123,7 +123,7 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
                             h.delete_post(uri).await;
                         }
                         FirehoseEvent::Like(like_uri, post_uri) => {
-                            h.like_post(post_uri, like_uri).await;
+                            h.like_post(like_uri, post_uri).await;
                         }
                         FirehoseEvent::DeleteLike(uri) => {
                             h.delete_like(uri).await;
@@ -131,7 +131,7 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
                     }
                 }
             });
-            
+
             let firehose_listener = tokio::spawn(async move {
                 if let Err(e) = FirehoseConnector::run(tx).await {
                     log::error!("Firehose error: {}", e);
@@ -139,7 +139,6 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
             });
 
             let _ = tokio::join!(feed_server.run(address), firehose_listener, event_handler);
-            
         }
     }
 }
