@@ -178,7 +178,6 @@ use frames::Frame;
 pub enum FirehoseError {
     Frame(frames::FrameError),
     WebSocket(tokio_tungstenite::tungstenite::Error),
-    Io(std::io::Error),
     CarStore(String),
 }
 
@@ -187,31 +186,12 @@ impl std::fmt::Display for FirehoseError {
         match self {
             FirehoseError::Frame(e) => write!(f, "frame error: {}", e),
             FirehoseError::WebSocket(e) => write!(f, "websocket error: {}", e),
-            FirehoseError::Io(e) => write!(f, "io error: {}", e),
             FirehoseError::CarStore(msg) => write!(f, "car store error: {}", msg),
         }
     }
 }
 
 impl std::error::Error for FirehoseError {}
-
-impl From<frames::FrameError> for FirehoseError {
-    fn from(e: frames::FrameError) -> Self {
-        FirehoseError::Frame(e)
-    }
-}
-
-impl From<tokio_tungstenite::tungstenite::Error> for FirehoseError {
-    fn from(e: tokio_tungstenite::tungstenite::Error) -> Self {
-        FirehoseError::WebSocket(e)
-    }
-}
-
-impl From<std::io::Error> for FirehoseError {
-    fn from(e: std::io::Error) -> Self {
-        FirehoseError::Io(e)
-    }
-}
 
 pub enum FirehoseEvent {
     Post(Post),
@@ -225,7 +205,9 @@ pub struct FirehoseConnector;
 impl FirehoseConnector {
     pub async fn run(tx: mpsc::Sender<FirehoseEvent>) -> Result<(), FirehoseError> {
         let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
-        let (stream, _) = connect_async(format!("wss://bsky.network/xrpc/{NSID}")).await?;
+        let (stream, _) = connect_async(format!("wss://bsky.network/xrpc/{NSID}"))
+            .await
+            .map_err(|e| FirehoseError::WebSocket(e))?;
         let mut subscription = RepoSubscription { stream };
 
         while let Some(message) = subscription.next().await {
@@ -381,10 +363,10 @@ impl RepoSubscription {
         match self.stream.next().await {
             Some(Ok(Message::Binary(data))) => {
                 let slice: &[u8] = &data;
-                Some(Frame::try_from(slice).map_err(FirehoseError::from))
+                Some(Frame::try_from(slice).map_err(|e| FirehoseError::Frame(e)))
             }
             Some(Ok(_)) | None => None,
-            Some(Err(e)) => Some(Err(FirehoseError::from(e))),
+            Some(Err(e)) => Some(Err(FirehoseError::WebSocket(e))),
         }
     }
 }
