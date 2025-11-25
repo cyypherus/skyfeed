@@ -50,7 +50,6 @@ tokio-tungstenite = { version = "0.28.0", features = ["rustls-tls-native-roots"]
 futures = "0.3.31"
 warp = "0.3.7"
 
-anyhow = "1.0.81"
 clap = { version = "4.5.3", features = ["derive"] }
 reqwest = "0.12.9"
 atrium-xrpc-client = "0.5.10"

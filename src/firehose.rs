@@ -1,4 +1,3 @@
-use anyhow::Result;
 use atrium_api::types::string::RecordKey;
 use atrium_api::types::Collection;
 use futures::StreamExt;
@@ -7,7 +6,7 @@ use tokio::sync::mpsc;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 
-use atrium_api::app::bsky::feed;
+use atrium_api::app::bsky::feed::{self, Like};
 use atrium_api::com::atproto::sync::subscribe_repos::{Commit, NSID};
 use atrium_repo::{blockstore::CarStore, Repository};
 
@@ -20,13 +19,30 @@ mod frames {
     use std::io::Cursor;
 
     #[derive(Debug, Clone, PartialEq, Eq)]
+    pub enum FrameError {
+        InvalidFrameType,
+        DecodeError,
+    }
+
+    impl std::fmt::Display for FrameError {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                FrameError::InvalidFrameType => write!(f, "invalid frame type"),
+                FrameError::DecodeError => write!(f, "decode error"),
+            }
+        }
+    }
+
+    impl std::error::Error for FrameError {}
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
     enum FrameHeader {
         Message(Option<String>),
         Error,
     }
 
     impl TryFrom<Ipld> for FrameHeader {
-        type Error = anyhow::Error;
+        type Error = FrameError;
 
         fn try_from(value: Ipld) -> Result<Self, <FrameHeader as TryFrom<Ipld>>::Error> {
             if let Ipld::Map(map) = value {
@@ -45,7 +61,7 @@ mod frames {
                     }
                 }
             }
-            Err(anyhow::anyhow!("invalid frame type"))
+            Err(FrameError::InvalidFrameType)
         }
     }
 
@@ -64,7 +80,7 @@ mod frames {
     pub struct ErrorFrame {}
 
     impl TryFrom<&[u8]> for Frame {
-        type Error = anyhow::Error;
+        type Error = FrameError;
 
         fn try_from(value: &[u8]) -> Result<Self, <Frame as TryFrom<&[u8]>>::Error> {
             let mut cursor = Cursor::new(value);
@@ -73,10 +89,13 @@ mod frames {
                     value.split_at(cursor.position() as usize)
                 }
                 _ => {
-                    return Err(anyhow::anyhow!("invalid frame type"));
+                    return Err(FrameError::InvalidFrameType);
                 }
             };
-            let header = FrameHeader::try_from(serde_ipld_dagcbor::from_slice::<Ipld>(left)?)?;
+            let header = FrameHeader::try_from(
+                serde_ipld_dagcbor::from_slice::<Ipld>(left)
+                    .map_err(|_| FrameError::DecodeError)?,
+            )?;
             if let FrameHeader::Message(t) = &header {
                 Ok(Frame::Message(
                     t.clone(),
@@ -136,8 +155,8 @@ mod frames {
                     serde_ipld_dagcbor::from_slice::<Ipld>(&data).expect("failed to deserialize");
                 let result = FrameHeader::try_from(ipld);
                 assert_eq!(
-                    result.expect_err("must be failed").to_string(),
-                    "invalid frame type"
+                    result.expect_err("must be failed"),
+                    FrameError::InvalidFrameType
                 );
             }
             {
@@ -146,8 +165,8 @@ mod frames {
                     serde_ipld_dagcbor::from_slice::<Ipld>(&data).expect("failed to deserialize");
                 let result = FrameHeader::try_from(ipld);
                 assert_eq!(
-                    result.expect_err("must be failed").to_string(),
-                    "invalid frame type"
+                    result.expect_err("must be failed"),
+                    FrameError::InvalidFrameType
                 );
             }
         }
@@ -156,15 +175,58 @@ mod frames {
 
 use frames::Frame;
 
+#[derive(Debug)]
+pub enum FirehoseError {
+    Frame(frames::FrameError),
+    WebSocket(tokio_tungstenite::tungstenite::Error),
+    Io(std::io::Error),
+    CarStore(String),
+    Repository(String),
+}
+
+impl std::fmt::Display for FirehoseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FirehoseError::Frame(e) => write!(f, "frame error: {}", e),
+            FirehoseError::WebSocket(e) => write!(f, "websocket error: {}", e),
+            FirehoseError::Io(e) => write!(f, "io error: {}", e),
+            FirehoseError::CarStore(msg) => write!(f, "car store error: {}", msg),
+            FirehoseError::Repository(msg) => write!(f, "repository error: {}", msg),
+        }
+    }
+}
+
+impl std::error::Error for FirehoseError {}
+
+impl From<frames::FrameError> for FirehoseError {
+    fn from(e: frames::FrameError) -> Self {
+        FirehoseError::Frame(e)
+    }
+}
+
+impl From<tokio_tungstenite::tungstenite::Error> for FirehoseError {
+    fn from(e: tokio_tungstenite::tungstenite::Error) -> Self {
+        FirehoseError::WebSocket(e)
+    }
+}
+
+impl From<std::io::Error> for FirehoseError {
+    fn from(e: std::io::Error) -> Self {
+        FirehoseError::Io(e)
+    }
+}
+
 pub enum FirehoseEvent {
     Post(Post),
     DeletePost(Uri),
+    Like(Uri, Uri),
+    DeleteLike(Uri),
 }
 
 pub struct FirehoseConnector;
 
 impl FirehoseConnector {
-    pub async fn run(tx: mpsc::Sender<FirehoseEvent>) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn run(tx: mpsc::Sender<FirehoseEvent>) -> Result<(), FirehoseError> {
         let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
         let (stream, _) = connect_async(format!("wss://bsky.network/xrpc/{NSID}")).await?;
         let mut subscription = RepoSubscription { stream };
@@ -178,7 +240,9 @@ impl FirehoseConnector {
             match message {
                 Ok(Frame::Message(Some(t), message)) => {
                     if t.as_str() == "#commit" {
-                        match serde_ipld_dagcbor::from_reader(std::io::Cursor::new(message.body.as_slice())) {
+                        match serde_ipld_dagcbor::from_reader(std::io::Cursor::new(
+                            message.body.as_slice(),
+                        )) {
                             Ok(commit) => {
                                 if let Err(e) = Self::handle_commit(&commit, &tx).await {
                                     log::error!("Failed to handle commit: {}", e);
@@ -203,12 +267,18 @@ impl FirehoseConnector {
         Ok(())
     }
 
-    async fn handle_commit(commit: &Commit, tx: &mpsc::Sender<FirehoseEvent>) -> Result<()> {
+    async fn handle_commit(
+        commit: &Commit,
+        tx: &mpsc::Sender<FirehoseEvent>,
+    ) -> Result<(), FirehoseError> {
         let mut repo = Repository::open(
-            CarStore::open(std::io::Cursor::new(commit.blocks.as_slice())).await?,
+            CarStore::open(std::io::Cursor::new(commit.blocks.as_slice()))
+                .await
+                .map_err(|e| FirehoseError::CarStore(e.to_string()))?,
             commit.commit.0,
         )
-        .await?;
+        .await
+        .map_err(|e| FirehoseError::Repository(e.to_string()))?;
 
         for op in &commit.ops {
             let mut s = op.path.split('/');
@@ -220,7 +290,11 @@ impl FirehoseConnector {
             match (collection, action) {
                 (feed::Post::NSID, "create") => {
                     let rkey = RecordKey::new(rkey.to_string()).expect("invalid record key");
-                    if let Some(record) = repo.get::<feed::Post>(rkey.clone()).await? {
+                    if let Some(record) = repo
+                        .get::<feed::Post>(rkey.clone())
+                        .await
+                        .map_err(|e| FirehoseError::Repository(e.to_string()))?
+                    {
                         let uri = format!(
                             "at://{}/{}/{}",
                             commit.repo.as_str(),
@@ -259,6 +333,32 @@ impl FirehoseConnector {
                     let uri = format!("at://{}/{}/{}", commit.repo.as_str(), collection, rkey_str);
                     let _ = tx.send(FirehoseEvent::DeletePost(Uri(uri))).await;
                 }
+                (Like::NSID, "create") => {
+                    let rkey = RecordKey::new(rkey.to_string()).expect("invalid record key");
+                    if let Some(record) = repo
+                        .get::<feed::Like>(rkey.clone())
+                        .await
+                        .map_err(|e| FirehoseError::Repository(e.to_string()))?
+                    {
+                        let uri = format!(
+                            "at://{}/{}/{}",
+                            commit.repo.as_str(),
+                            collection,
+                            rkey.as_str()
+                        );
+                        let _ = tx
+                            .send(FirehoseEvent::Like(
+                                Uri(uri),
+                                Uri(record.subject.uri.clone()),
+                            ))
+                            .await;
+                    }
+                }
+                (Like::NSID, "delete") => {
+                    let rkey_str = rkey.to_string();
+                    let uri = format!("at://{}/{}/{}", commit.repo.as_str(), collection, rkey_str);
+                    let _ = tx.send(FirehoseEvent::DeleteLike(Uri(uri))).await;
+                }
                 _ => {}
             }
         }
@@ -271,14 +371,14 @@ struct RepoSubscription {
 }
 
 impl RepoSubscription {
-    async fn next(&mut self) -> Option<anyhow::Result<Frame>> {
+    async fn next(&mut self) -> Option<Result<Frame, FirehoseError>> {
         match self.stream.next().await {
             Some(Ok(Message::Binary(data))) => {
                 let slice: &[u8] = &data;
-                Some(Frame::try_from(slice))
+                Some(Frame::try_from(slice).map_err(FirehoseError::from))
             }
             Some(Ok(_)) | None => None,
-            Some(Err(e)) => Some(Err(anyhow::Error::new(e))),
+            Some(Err(e)) => Some(Err(FirehoseError::from(e))),
         }
     }
 }
