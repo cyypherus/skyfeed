@@ -4,27 +4,17 @@ use atrium_api::app::bsky::feed::describe_feed_generator::{
 use atrium_api::app::bsky::feed::get_feed_skeleton::OutputData as FeedSkeleton;
 use atrium_api::app::bsky::feed::get_feed_skeleton::Parameters as FeedSkeletonQuery;
 use atrium_api::app::bsky::feed::get_feed_skeleton::ParametersData as FeedSkeletonParameters;
-use atrium_api::record::KnownRecord;
 use atrium_api::types::Object;
-use chrono::DateTime;
 use env_logger::Env;
-use jetstream_oxide::exports::Nsid;
-use jetstream_oxide::{
-    events::{
-        commit::{CommitData, CommitEvent, CommitInfo, CommitType},
-        JetstreamEvent::Commit,
-    },
-    DefaultJetstreamEndpoints, JetstreamCompression, JetstreamConfig, JetstreamConnector,
-};
-use log::{error, info};
+use log::info;
 use std::fmt::Debug;
 use std::net::SocketAddr;
 use warp::Filter;
 
-use crate::models::{Did, Embed, Label, Post, Request, Uri};
+use crate::models::Request;
 use crate::utility_models::{DidDocument, Service};
-use crate::Cid;
 use crate::{config::Config, feed_handler::FeedHandler};
+use crate::firehose::{FirehoseConnector, FirehoseEvent};
 
 /// A `Feed` stores a `FeedHandler`, handles feed server endpoints & connects to the Firehose using the `start` methods.
 pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
@@ -61,7 +51,7 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
         config: Config,
         address: impl Into<SocketAddr> + Debug + Clone + Send,
     ) -> impl std::future::Future<Output = ()> + Send {
-        let mut handler = self.handler();
+        let handler = self.handler();
         let address = address.clone();
         let feed_name = name.as_ref().to_string();
         async move {
@@ -118,131 +108,32 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
                 }
             }));
             let feed_server = warp::serve(routes);
-            let firehose_listener = tokio::spawn(async move {
-                let jetstream = JetstreamConnector::new(JetstreamConfig {
-                    endpoint: DefaultJetstreamEndpoints::USEastOne.into(),
-                    wanted_collections: vec![
-                        Nsid::new("app.bsky.feed.post".to_string()).unwrap(),
-                        Nsid::new("app.bsky.feed.like".to_string()).unwrap(),
-                    ],
-                    compression: JetstreamCompression::Zstd,
-                    ..Default::default()
-                })
-                .unwrap();
-                let receiver = jetstream.connect().await.unwrap();
-                while let Ok(event) = receiver
-                    .recv_async()
-                    .await
-                    .inspect_err(|e| error!("Jetstream error: {}", e))
-                {
-                    if let Commit(commit) = event {
-                        #[allow(clippy::collapsible_match)]
-                        match commit {
-                            CommitEvent::Create {
-                                info,
-                                commit:
-                                    CommitData {
-                                        info:
-                                            CommitInfo {
-                                                operation: CommitType::Create,
-                                                collection,
-                                                rkey,
-                                                ..
-                                            },
-                                        cid,
-                                        record: KnownRecord::AppBskyFeedPost(record),
-                                    },
-                            } => {
-                                #[allow(clippy::to_string_in_format_args)]
-                                let uri = format!(
-                                    "at://{}/{}/{}",
-                                    info.did.to_string(),
-                                    collection.to_string(),
-                                    rkey
-                                );
-
-                                let Some(time) =
-                                    DateTime::from_timestamp_micros(info.time_us as i64)
-                                else {
-                                    let time_us = info.time_us;
-                                    error!("Invalid post timestamp: {time_us}");
-                                    continue;
-                                };
-                                let post = Post {
-                                    author_did: Did(info.did.to_string()),
-                                    cid: Cid(serde_json::to_string(&cid).unwrap()),
-                                    uri: Uri(uri),
-                                    text: record.text.clone(),
-                                    labels: record
-                                        .labels
-                                        .as_ref()
-                                        .and_then(Label::from_atrium)
-                                        .unwrap_or_default(),
-                                    timestamp: time,
-                                    embed: record.embed.as_ref().and_then(Embed::from_atrium),
-                                    langs: record
-                                        .langs
-                                        .iter()
-                                        .filter_map(|lang| serde_json::to_string(&lang).ok())
-                                        .collect(),
-                                };
-                                handler.insert_post(post).await;
-                            }
-                            CommitEvent::Create {
-                                info,
-                                commit:
-                                    CommitData {
-                                        info:
-                                            CommitInfo {
-                                                operation: CommitType::Create,
-                                                collection,
-                                                rkey,
-                                                ..
-                                            },
-                                        record: KnownRecord::AppBskyFeedLike(record),
-                                        ..
-                                    },
-                            } => {
-                                #[allow(clippy::to_string_in_format_args)]
-                                let uri = format!(
-                                    "at://{}/{}/{}",
-                                    info.did.to_string(),
-                                    collection.to_string(),
-                                    rkey
-                                );
-                                handler
-                                    .like_post(Uri(uri), Uri(record.subject.uri.clone()))
-                                    .await;
-                            }
-                            CommitEvent::Delete {
-                                info,
-                                commit:
-                                    CommitInfo {
-                                        rkey, collection, ..
-                                    },
-                            } => {
-                                #[allow(clippy::to_string_in_format_args)]
-                                let uri = format!(
-                                    "at://{}/{}/{}",
-                                    info.did.to_string(),
-                                    collection.to_string(),
-                                    rkey
-                                );
-                                if collection.to_string() == "app.bsky.feed.post" {
-                                    handler.delete_post(Uri(uri)).await;
-                                } else if collection.to_string() == "app.bsky.feed.like" {
-                                    handler.delete_like(Uri(uri)).await;
-                                }
-                            }
-                            _ => (),
+            
+            let (tx, mut rx) = tokio::sync::mpsc::channel(1000);
+            
+            let handler_clone = handler.clone();
+            let event_handler = tokio::spawn(async move {
+                while let Some(event) = rx.recv().await {
+                    let mut h = handler_clone.clone();
+                    match event {
+                        FirehoseEvent::Post(post) => {
+                            h.insert_post(post).await;
+                        }
+                        FirehoseEvent::DeletePost(uri) => {
+                            h.delete_post(uri).await;
                         }
                     }
                 }
             });
+            
+            let firehose_listener = tokio::spawn(async move {
+                if let Err(e) = FirehoseConnector::run(tx).await {
+                    log::error!("Firehose error: {}", e);
+                }
+            });
 
-            tokio::join!(feed_server.run(address), firehose_listener)
-                .1
-                .expect("Couldn't await tasks");
+            let _ = tokio::join!(feed_server.run(address), firehose_listener, event_handler);
+            
         }
     }
 }

@@ -1,0 +1,284 @@
+use anyhow::Result;
+use atrium_api::types::string::RecordKey;
+use atrium_api::types::Collection;
+use futures::StreamExt;
+use tokio::net::TcpStream;
+use tokio::sync::mpsc;
+use tokio_tungstenite::tungstenite::Message;
+use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
+
+use atrium_api::app::bsky::feed;
+use atrium_api::com::atproto::sync::subscribe_repos::{Commit, NSID};
+use atrium_repo::{blockstore::CarStore, Repository};
+
+use crate::models::{Did, Embed, Label, Post, Uri};
+use crate::Cid;
+use chrono::DateTime;
+
+mod frames {
+    use ipld_core::ipld::Ipld;
+    use std::io::Cursor;
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    enum FrameHeader {
+        Message(Option<String>),
+        Error,
+    }
+
+    impl TryFrom<Ipld> for FrameHeader {
+        type Error = anyhow::Error;
+
+        fn try_from(value: Ipld) -> Result<Self, <FrameHeader as TryFrom<Ipld>>::Error> {
+            if let Ipld::Map(map) = value {
+                if let Some(Ipld::Integer(i)) = map.get("op") {
+                    match i {
+                        1 => {
+                            let t = if let Some(Ipld::String(s)) = map.get("t") {
+                                Some(s.clone())
+                            } else {
+                                None
+                            };
+                            return Ok(FrameHeader::Message(t));
+                        }
+                        -1 => return Ok(FrameHeader::Error),
+                        _ => {}
+                    }
+                }
+            }
+            Err(anyhow::anyhow!("invalid frame type"))
+        }
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub enum Frame {
+        Message(Option<String>, MessageFrame),
+        Error(ErrorFrame),
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub struct MessageFrame {
+        pub body: Vec<u8>,
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub struct ErrorFrame {}
+
+    impl TryFrom<&[u8]> for Frame {
+        type Error = anyhow::Error;
+
+        fn try_from(value: &[u8]) -> Result<Self, <Frame as TryFrom<&[u8]>>::Error> {
+            let mut cursor = Cursor::new(value);
+            let (left, right) = match serde_ipld_dagcbor::from_reader::<Ipld, _>(&mut cursor) {
+                Err(serde_ipld_dagcbor::DecodeError::TrailingData) => {
+                    value.split_at(cursor.position() as usize)
+                }
+                _ => {
+                    return Err(anyhow::anyhow!("invalid frame type"));
+                }
+            };
+            let header = FrameHeader::try_from(serde_ipld_dagcbor::from_slice::<Ipld>(left)?)?;
+            if let FrameHeader::Message(t) = &header {
+                Ok(Frame::Message(
+                    t.clone(),
+                    MessageFrame {
+                        body: right.to_vec(),
+                    },
+                ))
+            } else {
+                Ok(Frame::Error(ErrorFrame {}))
+            }
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        fn serialized_data(s: &str) -> Vec<u8> {
+            assert!(s.len() % 2 == 0);
+            let b2u = |b: u8| match b {
+                b'0'..=b'9' => b - b'0',
+                b'a'..=b'f' => b - b'a' + 10,
+                _ => unreachable!(),
+            };
+            s.as_bytes()
+                .chunks(2)
+                .map(|b| (b2u(b[0]) << 4) + b2u(b[1]))
+                .collect()
+        }
+
+        #[test]
+        fn deserialize_message_frame_header() {
+            let data = serialized_data("a2626f700161746723636f6d6d6974");
+            let ipld =
+                serde_ipld_dagcbor::from_slice::<Ipld>(&data).expect("failed to deserialize");
+            let result = FrameHeader::try_from(ipld);
+            assert_eq!(
+                result.expect("failed to deserialize"),
+                FrameHeader::Message(Some(String::from("#commit")))
+            );
+        }
+
+        #[test]
+        fn deserialize_error_frame_header() {
+            let data = serialized_data("a1626f7020");
+            let ipld =
+                serde_ipld_dagcbor::from_slice::<Ipld>(&data).expect("failed to deserialize");
+            let result = FrameHeader::try_from(ipld);
+            assert_eq!(result.expect("failed to deserialize"), FrameHeader::Error);
+        }
+
+        #[test]
+        fn deserialize_invalid_frame_header() {
+            {
+                let data = serialized_data("a2626f700261746723636f6d6d6974");
+                let ipld =
+                    serde_ipld_dagcbor::from_slice::<Ipld>(&data).expect("failed to deserialize");
+                let result = FrameHeader::try_from(ipld);
+                assert_eq!(
+                    result.expect_err("must be failed").to_string(),
+                    "invalid frame type"
+                );
+            }
+            {
+                let data = serialized_data("a1626f7021");
+                let ipld =
+                    serde_ipld_dagcbor::from_slice::<Ipld>(&data).expect("failed to deserialize");
+                let result = FrameHeader::try_from(ipld);
+                assert_eq!(
+                    result.expect_err("must be failed").to_string(),
+                    "invalid frame type"
+                );
+            }
+        }
+    }
+}
+
+use frames::Frame;
+
+pub enum FirehoseEvent {
+    Post(Post),
+    DeletePost(Uri),
+}
+
+pub struct FirehoseConnector;
+
+impl FirehoseConnector {
+    pub async fn run(tx: mpsc::Sender<FirehoseEvent>) -> Result<(), Box<dyn std::error::Error>> {
+        let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
+        let (stream, _) = connect_async(format!("wss://bsky.network/xrpc/{NSID}")).await?;
+        let mut subscription = RepoSubscription { stream };
+
+        loop {
+            let message = match subscription.next().await {
+                Some(msg) => msg,
+                None => continue,
+            };
+
+            match message {
+                Ok(Frame::Message(Some(t), message)) => {
+                    if t.as_str() == "#commit" {
+                        match serde_ipld_dagcbor::from_reader(std::io::Cursor::new(message.body.as_slice())) {
+                            Ok(commit) => {
+                                if let Err(e) = Self::handle_commit(&commit, &tx).await {
+                                    log::error!("Failed to handle commit: {}", e);
+                                }
+                            }
+                            Err(e) => {
+                                log::error!("Failed to deserialize commit: {}", e);
+                            }
+                        }
+                    }
+                }
+                Ok(Frame::Message(None, _msg)) => (),
+                Ok(Frame::Error(_e)) => {
+                    println!("received error frame");
+                    break;
+                }
+                Err(e) => {
+                    println!("error {e}");
+                }
+            }
+        }
+        Ok(())
+    }
+
+    async fn handle_commit(commit: &Commit, tx: &mpsc::Sender<FirehoseEvent>) -> Result<()> {
+        let mut repo = Repository::open(
+            CarStore::open(std::io::Cursor::new(commit.blocks.as_slice())).await?,
+            commit.commit.0,
+        )
+        .await?;
+
+        for op in &commit.ops {
+            let mut s = op.path.split('/');
+            let collection = s.next().expect("op.path is empty");
+            let rkey = s.next().expect("no record key");
+
+            let action = op.action.as_str();
+
+            match (collection, action) {
+                (feed::Post::NSID, "create") => {
+                    let rkey = RecordKey::new(rkey.to_string()).expect("invalid record key");
+                    if let Some(record) = repo.get::<feed::Post>(rkey.clone()).await? {
+                        let uri = format!(
+                            "at://{}/{}/{}",
+                            commit.repo.as_str(),
+                            collection,
+                            rkey.as_str()
+                        );
+
+                        let timestamp = DateTime::parse_from_rfc3339(record.created_at.as_str())
+                            .ok()
+                            .map(|dt| dt.with_timezone(&chrono::Utc))
+                            .unwrap_or_else(|| chrono::Utc::now());
+
+                        let post = Post {
+                            author_did: Did(commit.repo.as_str().to_string()),
+                            cid: Cid(serde_json::to_string(&op.cid).unwrap()),
+                            uri: Uri(uri),
+                            text: record.text.clone(),
+                            labels: record
+                                .labels
+                                .as_ref()
+                                .and_then(Label::from_atrium)
+                                .unwrap_or_default(),
+                            timestamp,
+                            embed: record.embed.as_ref().and_then(Embed::from_atrium),
+                            langs: record
+                                .langs
+                                .iter()
+                                .filter_map(|lang| serde_json::to_string(&lang).ok())
+                                .collect(),
+                        };
+                        let _ = tx.send(FirehoseEvent::Post(post)).await;
+                    }
+                }
+                (feed::Post::NSID, "delete") => {
+                    let rkey_str = rkey.to_string();
+                    let uri = format!("at://{}/{}/{}", commit.repo.as_str(), collection, rkey_str);
+                    let _ = tx.send(FirehoseEvent::DeletePost(Uri(uri))).await;
+                }
+                _ => {}
+            }
+        }
+        Ok(())
+    }
+}
+
+struct RepoSubscription {
+    stream: WebSocketStream<MaybeTlsStream<TcpStream>>,
+}
+
+impl RepoSubscription {
+    async fn next(&mut self) -> Option<anyhow::Result<Frame>> {
+        match self.stream.next().await {
+            Some(Ok(Message::Binary(data))) => {
+                let slice: &[u8] = &data;
+                Some(Frame::try_from(slice))
+            }
+            Some(Ok(_)) | None => None,
+            Some(Err(e)) => Some(Err(anyhow::Error::new(e))),
+        }
+    }
+}
