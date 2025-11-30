@@ -187,7 +187,7 @@ async fn get_feed_skeleton<Handler: FeedHandler>(
     let skeleton = handler
         .serve_feed(Request {
             cursor: query.cursor.clone(),
-            feed: query.feed.clone(),
+            feed: query.feed.split("/").last().unwrap_or("").to_string(),
             limit: query.limit,
         })
         .await;

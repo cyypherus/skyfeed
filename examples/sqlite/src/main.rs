@@ -11,9 +11,9 @@ const MY_FEED: &'static str = "cyys-feed";
 
 #[tokio::main]
 async fn main() {
-    let fr_feed_db = Connection::open("feed.db").expect("Failed to open database");
+    let fr_feed_db = Connection::open("/space/feed.db").expect("Failed to open database");
     initialize_db(&fr_feed_db);
-    let my_feed_db = Connection::open("feed-2.db").expect("Failed to open database");
+    let my_feed_db = Connection::open("/space/feed-2.db").expect("Failed to open database");
     initialize_db(&my_feed_db);
 
     let fr_feed_db = Arc::new(Mutex::new(fr_feed_db));
@@ -54,6 +54,7 @@ async fn main() {
                 publisher_did,
                 feed_generator_hostname
             },
+            // Config::load_env_config(),
             ([0, 0, 0, 0], 3030)
         ),
         cleanup_task
@@ -91,7 +92,7 @@ impl FeedHandler for MyFeedHandler {
             && !self.fr_regex.is_match(post.text.as_str())
             && post.labels.is_empty()
         {
-            info!("Storing french feed post {post:?}");
+            // info!("Storing french feed post {post:?}");
 
             self.fr_feed_db
                 .lock()
@@ -108,7 +109,7 @@ impl FeedHandler for MyFeedHandler {
             && detected_language == Some(whatlang::Lang::Eng)
             && !self.my_regex.is_match(post.text.as_str())
         {
-            info!("Storing my feed post {post:?}");
+            // info!("Storing my feed post {post:?}");
 
             self.my_feed_db
                 .lock()
