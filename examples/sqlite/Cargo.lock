@@ -337,21 +337,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
-name = "basic"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "log",
- "metrics",
- "metrics-exporter-prometheus",
- "regex",
- "rusqlite",
- "skyfeed",
- "tokio",
- "whatlang",
-]
-
-[[package]]
 name = "bindgen"
 version = "0.72.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2797,6 +2782,7 @@ checksum = "c1e9a774a6c28142ac54bb25d25562e6bcf957493a184f15ad4eebccb23e410a"
 [[package]]
 name = "skyfeed"
 version = "0.6.0"
+source = "git+https://github.com/cyypherus/skyfeed.git?branch=atrium-firehose#321d6972317fe741b2913aeec2ae3d6ce6b535ab"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2861,6 +2847,21 @@ name = "spin"
 version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
+
+[[package]]
+name = "sqlite-feed"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "log",
+ "metrics",
+ "metrics-exporter-prometheus",
+ "regex",
+ "rusqlite",
+ "skyfeed",
+ "tokio",
+ "whatlang",
+]
 
 [[package]]
 name = "stable_deref_trait"
