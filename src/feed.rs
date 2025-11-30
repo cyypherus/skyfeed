@@ -23,7 +23,7 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
     ///
     /// This method loads the config from a local .env file using `dotenv`. See `Config`
     ///
-    /// - name: The identifying name of your feed. This value is used in the feed URL & when identifying which feed to *unpublish*. This is a separate value from the display name.
+    /// - feed_names: The identifying names of your feeds. This value is used in the feed URL & when identifying which feed to *publish* or *unpublish*. This is a separate value from the display name.
     /// - address: The address to bind the server to
     ///
     /// # Panics
@@ -31,14 +31,14 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
     /// Panics if unable to bind to the provided address.
     fn start(
         &mut self,
-        name: impl AsRef<str>,
+        feed_names: Vec<&'static str>,
         address: impl Into<SocketAddr> + Debug + Clone + Send,
     ) -> impl std::future::Future<Output = ()> + Send {
-        self.start_with_config(name, Config::load_env_config(), address)
+        self.start_with_config(feed_names, Config::load_env_config(), address)
     }
     /// Starts the feed generator server & connects to the firehose.
     ///
-    /// - name: The identifying name of your feed. This value is used in the feed URL & when identifying which feed to *unpublish*. This is a separate value from the display name.
+    /// - feed_names: The identifying names of your feeds. This value is used in the feed URL & when identifying which feed to *publish* or *unpublish*. This is a separate value from the display name.
     /// - config: Configuration values, see `Config`
     /// - address: The address to bind the server to
     ///
@@ -47,13 +47,13 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
     /// Panics if unable to bind to the provided address.
     fn start_with_config(
         &mut self,
-        name: impl AsRef<str>,
+        feed_names: Vec<&'static str>,
         config: Config,
         address: impl Into<SocketAddr> + Debug + Clone + Send,
     ) -> impl std::future::Future<Output = ()> + Send {
         let handler = self.handler();
         let address = address.clone();
-        let feed_name = name.as_ref().to_string();
+        let feed_names = feed_names.clone();
         async move {
             env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
@@ -70,7 +70,7 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
                 .and(warp::path("app.bsky.feed.describeFeedGenerator"))
                 .and(warp::get())
                 .and_then(move || {
-                    describe_feed_generator(describe_feed_config.clone(), feed_name.clone())
+                    describe_feed_generator(describe_feed_config.clone(), feed_names.clone())
                 });
 
             let get_feed_handler = handler.clone();
@@ -111,10 +111,9 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
 
             let (tx, rx): (flume::Sender<FirehoseEvent>, _) = flume::unbounded();
 
-            let handler_clone = handler.clone();
             let event_handler = tokio::spawn(async move {
+                let mut h = handler;
                 while let Ok(event) = rx.recv_async().await {
-                    let mut h = handler_clone.clone();
                     match event {
                         FirehoseEvent::Post(post) => {
                             h.insert_post(post).await;
@@ -157,7 +156,7 @@ async fn did_json(config: Config) -> Result<impl warp::Reply, warp::Rejection> {
 
 async fn describe_feed_generator(
     config: Config,
-    feed_name: String,
+    feed_names: Vec<impl AsRef<str>>,
 ) -> Result<impl warp::Reply, warp::Rejection> {
     Ok(warp::reply::json(&FeedGeneratorDescription {
         did: atrium_api::types::string::Did::new(format!(
@@ -165,12 +164,18 @@ async fn describe_feed_generator(
             config.feed_generator_hostname
         ))
         .unwrap(),
-        feeds: vec![Object::from(FeedData {
-            uri: format!(
-                "at://{}/app.bsky.feed.generator/{}",
-                config.publisher_did, feed_name
-            ),
-        })],
+        feeds: feed_names
+            .iter()
+            .map(|name| {
+                Object::from(FeedData {
+                    uri: format!(
+                        "at://{}/app.bsky.feed.generator/{}",
+                        config.publisher_did,
+                        name.as_ref().to_string()
+                    ),
+                })
+            })
+            .collect(),
         links: None,
     }))
 }

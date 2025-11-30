@@ -10,7 +10,7 @@ async fn main() {
             posts: Arc::new(Mutex::new(Vec::new())),
         },
     };
-    feed.start("Cats", ([0, 0, 0, 0], 3030)).await
+    feed.start(vec!["Cats"], ([0, 0, 0, 0], 3030)).await
 }
 
 struct MyFeed {

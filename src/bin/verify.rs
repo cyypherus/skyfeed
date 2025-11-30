@@ -57,29 +57,28 @@ async fn main() {
     );
 
     // Extract at-uri and fetch the feed skeleton
-    let at_uri = describe["feeds"][0]["uri"]
-        .as_str()
-        .expect("at-uri not found");
+    for feed in describe["feeds"].as_array().expect("Unexpected object") {
+        let at_uri = feed["uri"].as_str().expect("at-uri not found");
+        let skeleton_response = client
+            .get(format!(
+                "{}/xrpc/app.bsky.feed.getFeedSkeleton",
+                args.local_url
+            ))
+            .query(&[("feed", at_uri), ("limit", "20")])
+            .send()
+            .await
+            .expect("Feed skeleton failed");
 
-    let skeleton_response = client
-        .get(format!(
-            "{}/xrpc/app.bsky.feed.getFeedSkeleton",
-            args.local_url
-        ))
-        .query(&[("feed", at_uri), ("limit", "20")])
-        .send()
-        .await
-        .expect("Feed skeleton failed");
+        let skeleton_body = skeleton_response
+            .text()
+            .await
+            .expect("Failed to read skeleton response text");
+        let skeleton: Value =
+            serde_json::from_str(&skeleton_body).expect("Failed to parse skeleton JSON");
 
-    let skeleton_body = skeleton_response
-        .text()
-        .await
-        .expect("Failed to read skeleton response text");
-    let skeleton: Value =
-        serde_json::from_str(&skeleton_body).expect("Failed to parse skeleton JSON");
-
-    println!(
-        "Feed Skeleton Response:\n{}",
-        serde_json::to_string_pretty(&skeleton).expect("Failed to pretty print skeleton JSON")
-    );
+        println!(
+            "Feed Skeleton Response:\n{}",
+            serde_json::to_string_pretty(&skeleton).expect("Failed to pretty print skeleton JSON")
+        );
+    }
 }

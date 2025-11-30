@@ -1,26 +1,45 @@
-use log::info;
+use log::{error, info};
+use regex::Regex;
 use rusqlite::{params, Connection};
 use skyfeed::{Config, Feed, FeedHandler, FeedResult, Post, Request, Uri};
 use std::env;
 use std::{sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 
+const FR_FEED: &'static str = "fr";
+const MY_FEED: &'static str = "cyys-feed";
+
 #[tokio::main]
 async fn main() {
-    let db = Connection::open("/space/feed.db").expect("Failed to open database");
-    initialize_db(&db);
+    let fr_feed_db = Connection::open("feed.db").expect("Failed to open database");
+    initialize_db(&fr_feed_db);
+    let my_feed_db = Connection::open("feed-2.db").expect("Failed to open database");
+    initialize_db(&my_feed_db);
 
-    let db = Arc::new(Mutex::new(db));
+    let fr_feed_db = Arc::new(Mutex::new(fr_feed_db));
+    let my_feed_db = Arc::new(Mutex::new(my_feed_db));
 
     let mut feed = MyFeed {
-        handler: MyFeedHandler { db: db.clone() },
+        handler: MyFeedHandler {
+            fr_regex: regex::RegexBuilder::new(r"\\b(macron|le[- ]?pen|mélenchon|fillon|sarkozy|LREM|RN|gilets\s+jaunes|politique|trudeau|libéraux?|conservateurs?|bloc(?:\s+québécois)?|n(?:ouveau\s+)?parti(?:\s+démocratique)?|constitution(?:nel(?:le)?)?|scandale|gouvernement)\b|(extrême\s+(?:droite|gauche))")
+                .case_insensitive(true)
+                .build()
+                .unwrap(),
+            fr_feed_db: fr_feed_db.clone(),
+            my_regex: regex::RegexBuilder::new(r"\b(trump|biden|far left|far right|republican|democrat|immigrant|woke|AI|slop|conservative|liberal|racist|homophobe|slur|xenophobe|israel|palestine|palestinian|immigration|ukraine|russia)s?\b")
+                .case_insensitive(true)
+                .build()
+                .unwrap(),
+            my_feed_db: my_feed_db.clone(),
+        },
     };
 
     let mut cleanup_interval = tokio::time::interval(Duration::from_secs(10));
     let cleanup_task = tokio::spawn(async move {
         loop {
             cleanup_interval.tick().await;
-            cleanup_posts(&db).await;
+            cleanup_posts(&fr_feed_db).await;
+            cleanup_posts(&my_feed_db).await;
         }
     });
 
@@ -30,7 +49,7 @@ async fn main() {
 
     tokio::join!(
         feed.start_with_config(
-            "fr",
+            vec![FR_FEED, MY_FEED],
             Config {
                 publisher_did,
                 feed_generator_hostname
@@ -55,62 +74,118 @@ impl Feed<MyFeedHandler> for MyFeed {
 
 #[derive(Clone)]
 struct MyFeedHandler {
-    db: Arc<Mutex<Connection>>,
+    fr_regex: Regex,
+    fr_feed_db: Arc<Mutex<Connection>>,
+    my_regex: Regex,
+    my_feed_db: Arc<Mutex<Connection>>,
 }
 
 impl FeedHandler for MyFeedHandler {
     async fn insert_post(&mut self, post: Post) {
-        let unwanted_regex =
-            regex::RegexBuilder::new(r"\\b(macron|le[- ]?pen|mélenchon|fillon|sarkozy|LREM|RN|gilets\s+jaunes|politique|trudeau|libéraux?|conservateurs?|bloc(?:\s+québécois)?|n(?:ouveau\s+)?parti(?:\s+démocratique)?|constitution(?:nel(?:le)?)?|scandale|gouvernement)\b|(extrême\s+(?:droite|gauche))")
-                .case_insensitive(true)
-                .build()
-                .unwrap();
-
+        // French feed
         let detected_language = whatlang::detect_lang(&post.text);
+        let insert_sql = "INSERT OR REPLACE INTO posts (uri, text, timestamp) VALUES (?1, ?2, ?3)";
 
         if post.langs.iter().any(|lang| lang.contains("fr"))
             && detected_language == Some(whatlang::Lang::Fra)
-            && !unwanted_regex.is_match(post.text.as_str())
+            && !self.fr_regex.is_match(post.text.as_str())
             && post.labels.is_empty()
         {
-            info!("Storing {post:?}");
-            let db = self.db.lock().await;
+            info!("Storing french feed post {post:?}");
 
-            db.execute(
-                "INSERT OR REPLACE INTO posts (uri, text, timestamp) VALUES (?1, ?2, ?3)",
-                params![post.uri.0, post.text, post.timestamp.timestamp()],
-            )
-            .expect("Failed to insert post");
+            self.fr_feed_db
+                .lock()
+                .await
+                .execute(
+                    insert_sql,
+                    params![post.uri.0, post.text, post.timestamp.timestamp()],
+                )
+                .expect("Failed to insert post");
+        }
+
+        // My feed
+        if post.langs.iter().any(|lang| lang.contains("en"))
+            && detected_language == Some(whatlang::Lang::Eng)
+            && !self.my_regex.is_match(post.text.as_str())
+        {
+            info!("Storing my feed post {post:?}");
+
+            self.my_feed_db
+                .lock()
+                .await
+                .execute(
+                    insert_sql,
+                    params![post.uri.0, post.text, post.timestamp.timestamp()],
+                )
+                .expect("Failed to insert post");
         }
     }
 
     async fn delete_post(&mut self, uri: Uri) {
-        let db = self.db.lock().await;
-        db.execute("DELETE FROM posts WHERE uri = ?1", params![uri.0])
+        let unpost_sql = "DELETE FROM posts WHERE uri = ?1";
+        self.fr_feed_db
+            .lock()
+            .await
+            .execute(unpost_sql, params![uri.0])
+            .expect("Failed to delete post");
+        self.my_feed_db
+            .lock()
+            .await
+            .execute(unpost_sql, params![uri.0])
             .expect("Failed to delete post");
     }
 
     async fn like_post(&mut self, like_uri: Uri, liked_post_uri: Uri) {
-        let db = self.db.lock().await;
-        db.execute(
-            "INSERT OR REPLACE INTO likes (post_uri, like_uri)
+        let like_sql = "INSERT OR REPLACE INTO likes (post_uri, like_uri)
              SELECT ?1, ?2
-             WHERE EXISTS (SELECT 1 FROM posts WHERE uri = ?1)",
-            params![liked_post_uri.0, like_uri.0],
-        )
-        .expect("Failed to like post");
+             WHERE EXISTS (SELECT 1 FROM posts WHERE uri = ?1)";
+        self.fr_feed_db
+            .lock()
+            .await
+            .execute(like_sql, params![liked_post_uri.0, like_uri.0])
+            .expect("Failed to like post");
+        self.my_feed_db
+            .lock()
+            .await
+            .execute(like_sql, params![liked_post_uri.0, like_uri.0])
+            .expect("Failed to like post");
     }
 
     async fn delete_like(&mut self, like_uri: Uri) {
-        let db = self.db.lock().await;
-        db.execute("DELETE FROM likes WHERE like_uri = ?1", params![like_uri.0])
+        let unlike_sql = "DELETE FROM likes WHERE like_uri = ?1";
+        self.fr_feed_db
+            .lock()
+            .await
+            .execute(unlike_sql, params![like_uri.0])
+            .expect("Failed to delete like");
+        self.my_feed_db
+            .lock()
+            .await
+            .execute(unlike_sql, params![like_uri.0])
             .expect("Failed to delete like");
     }
 
     async fn serve_feed(&self, request: Request) -> FeedResult {
         info!("Serving {request:?}");
 
-        let db = self.db.lock().await;
+        let start_index = request
+            .cursor
+            .as_deref()
+            .and_then(|c| c.parse::<usize>().ok())
+            .unwrap_or(0);
+
+        let posts_per_page = 50;
+        let db = if request.feed == FR_FEED {
+            self.fr_feed_db.lock().await
+        } else if request.feed == MY_FEED {
+            self.my_feed_db.lock().await
+        } else {
+            error!("Requested a nonexistent feed");
+            return FeedResult {
+                cursor: None,
+                feed: Vec::new(),
+            };
+        };
         let mut stmt = db
             .prepare(
                 "
@@ -135,40 +210,28 @@ impl FeedHandler for MyFeedHandler {
                 SELECT uri, likes
                 FROM sorted_posts
                 WHERE rank <= 0.05
-                ORDER BY timestamp DESC;
-             ",
+                ORDER BY timestamp DESC
+                LIMIT ? OFFSET ?;
+                ",
             )
             .expect("Failed to prepare statement");
 
         let post_iter = stmt
-            .query_map([], |row| row.get::<_, String>(0))
+            .query_map([posts_per_page as i64, start_index as i64], |row| {
+                row.get::<_, String>(0)
+            })
             .expect("Failed to query posts");
 
-        let posts: Vec<Uri> = post_iter.map(|x| x.unwrap()).map(Uri).collect();
+        let posts: Vec<Uri> = post_iter.filter_map(|x| x.ok()).map(Uri).collect();
 
-        let start_index = request
-            .cursor
-            .as_deref()
-            .and_then(|c| c.parse::<usize>().ok())
-            .unwrap_or(0);
-        let posts_per_page = 50;
-
-        let page_posts: Vec<_> = posts
-            .iter()
-            .skip(start_index)
-            .take(posts_per_page)
-            .cloned()
-            .collect();
-
-        let next_cursor = if start_index + posts_per_page < posts.len() {
+        let next_cursor = if posts.len() == posts_per_page {
             Some((start_index + posts_per_page).to_string())
         } else {
             None
         };
-
         FeedResult {
             cursor: next_cursor,
-            feed: page_posts,
+            feed: posts,
         }
     }
 }
