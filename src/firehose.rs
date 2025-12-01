@@ -1,6 +1,7 @@
 use atrium_api::types::Collection;
 use futures::StreamExt;
 use tokio::net::TcpStream;
+use tokio::sync::mpsc;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 
@@ -202,14 +203,14 @@ pub enum FirehoseEvent {
 pub struct FirehoseConnector;
 
 impl FirehoseConnector {
-    pub async fn run(tx: flume::Sender<FirehoseEvent>) -> Result<(), FirehoseError> {
+    pub async fn run(tx: mpsc::Sender<FirehoseEvent>) -> Result<(), FirehoseError> {
         let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
         let (stream, _) = connect_async(format!("wss://bsky.network/xrpc/{NSID}"))
             .await
             .map_err(|e| FirehoseError::WebSocket(e))?;
         let subscription = RepoSubscription { stream };
 
-        let (frame_tx, frame_rx) = flume::unbounded();
+        let (frame_tx, frame_rx) = mpsc::channel(10000);
 
         let receive_task = tokio::spawn(Self::receive_frames(subscription, frame_tx));
         let parse_task = tokio::spawn(Self::parse_frames(frame_rx, tx));
@@ -232,10 +233,10 @@ impl FirehoseConnector {
 
     async fn receive_frames(
         mut subscription: RepoSubscription,
-        frame_tx: flume::Sender<Result<Frame, FirehoseError>>,
+        frame_tx: mpsc::Sender<Result<Frame, FirehoseError>>,
     ) -> Result<(), FirehoseError> {
         while let Some(message) = subscription.next().await {
-            if frame_tx.send_async(message).await.is_err() {
+            if frame_tx.send(message).await.is_err() {
                 break;
             }
         }
@@ -243,10 +244,10 @@ impl FirehoseConnector {
     }
 
     async fn parse_frames(
-        frame_rx: flume::Receiver<Result<Frame, FirehoseError>>,
-        tx: flume::Sender<FirehoseEvent>,
+        mut frame_rx: mpsc::Receiver<Result<Frame, FirehoseError>>,
+        tx: mpsc::Sender<FirehoseEvent>,
     ) -> Result<(), FirehoseError> {
-        while let Ok(message) = frame_rx.recv_async().await {
+        while let Some(message) = frame_rx.recv().await {
             match message {
                 Ok(Frame::Message(Some(t), message)) => {
                     if t.as_str() == "#commit" {
@@ -280,7 +281,7 @@ impl FirehoseConnector {
 
     async fn handle_commit(
         commit: &Commit,
-        tx: &flume::Sender<FirehoseEvent>,
+        tx: &mpsc::Sender<FirehoseEvent>,
     ) -> Result<(), FirehoseError> {
         let mut blocks = commit.blocks.as_slice();
         let (items, _) = rs_car::car_read_all(&mut blocks, true)
@@ -343,7 +344,7 @@ impl FirehoseConnector {
                                         .filter_map(|lang| serde_json::to_string(&lang).ok())
                                         .collect(),
                                 };
-                                let _ = tx.send_async(FirehoseEvent::Post(post)).await;
+                                let _ = tx.send(FirehoseEvent::Post(post)).await;
                             }
                             Err(_) => {
                                 log::error!("Failed to deserialize post record for {}", rkey);
@@ -353,7 +354,7 @@ impl FirehoseConnector {
                 }
                 (feed::Post::NSID, "delete") => {
                     let uri = format!("at://{}/{}/{}", commit.repo.as_str(), collection, rkey);
-                    let _ = tx.send_async(FirehoseEvent::DeletePost(Uri(uri))).await;
+                    let _ = tx.send(FirehoseEvent::DeletePost(Uri(uri))).await;
                 }
                 (Like::NSID, "create") => {
                     if let Some((_, item_data)) = items.iter().find(|(cid, _)| {
@@ -373,7 +374,7 @@ impl FirehoseConnector {
                                     rkey
                                 );
                                 let _ = tx
-                                    .send_async(FirehoseEvent::Like(
+                                    .send(FirehoseEvent::Like(
                                         Uri(uri),
                                         Uri(record.subject.uri.clone()),
                                     ))
@@ -387,7 +388,7 @@ impl FirehoseConnector {
                 }
                 (Like::NSID, "delete") => {
                     let uri = format!("at://{}/{}/{}", commit.repo.as_str(), collection, rkey);
-                    let _ = tx.send_async(FirehoseEvent::DeleteLike(Uri(uri))).await;
+                    let _ = tx.send(FirehoseEvent::DeleteLike(Uri(uri))).await;
                 }
                 _ => {}
             }

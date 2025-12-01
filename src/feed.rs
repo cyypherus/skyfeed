@@ -109,11 +109,11 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
             }));
             let feed_server = warp::serve(routes);
 
-            let (tx, rx): (flume::Sender<FirehoseEvent>, _) = flume::unbounded();
+            let (tx, mut rx) = tokio::sync::mpsc::channel(1000);
 
             let event_handler = tokio::spawn(async move {
                 let mut h = handler;
-                while let Ok(event) = rx.recv_async().await {
+                while let Some(event) = rx.recv().await {
                     match event {
                         FirehoseEvent::Post(post) => {
                             h.insert_post(post).await;
