@@ -2805,7 +2805,7 @@ checksum = "c1e9a774a6c28142ac54bb25d25562e6bcf957493a184f15ad4eebccb23e410a"
 [[package]]
 name = "skyfeed"
 version = "0.6.0"
-source = "git+https://github.com/cyypherus/skyfeed.git?rev=11444a2aa02917dcd7897f7c33d9de378ebb2ed4#11444a2aa02917dcd7897f7c33d9de378ebb2ed4"
+source = "git+https://github.com/cyypherus/skyfeed.git?rev=eda67e72785c4eb1186f855b28365f9303e090cc#eda67e72785c4eb1186f855b28365f9303e090cc"
 dependencies = [
  "anyhow",
  "async-trait",

@@ -1,4 +1,4 @@
-use log::{error, info};
+use log::{error, info, trace};
 use regex::Regex;
 use rusqlite::{params, Connection};
 use skyfeed::{Config, Feed, FeedHandler, FeedResult, Post, Request, Uri};
@@ -11,9 +11,11 @@ const MY_FEED: &'static str = "cyys-feed";
 
 #[tokio::main]
 async fn main() {
+    // let fr_feed_db = Connection::open("feed.db").expect("Failed to open database");
+    // let my_feed_db = Connection::open("feed-2.db").expect("Failed to open database");
     let fr_feed_db = Connection::open("/space/feed.db").expect("Failed to open database");
-    initialize_db(&fr_feed_db);
     let my_feed_db = Connection::open("/space/feed-2.db").expect("Failed to open database");
+    initialize_db(&fr_feed_db);
     initialize_db(&my_feed_db);
 
     let fr_feed_db = Arc::new(Mutex::new(fr_feed_db));
@@ -26,20 +28,20 @@ async fn main() {
                 .build()
                 .unwrap(),
             fr_feed_db: fr_feed_db.clone(),
-            my_regex: regex::RegexBuilder::new(r"\b(trump|biden|far left|far right|republican|democrat|immigrant|woke|AI|slop|conservative|liberal|racist|homophobe|slur|xenophobe|israel|palestine|palestinian|immigration|ukraine|russia)s?\b")
-                .case_insensitive(true)
+            my_regex: regex::RegexBuilder::new(r"\b(?i:trump|biden|far (left|right)|republican|democrat|immigration|immigrant|woke|AI|slop|conservative|liberal|racis(t|m)|homophob(e|ic|ia)|xenophob(e|ic|ia)|transphob(e|ic|ia)|slur|israel[i]?|palestin(e|ian)|ukraine|russia|tech bro|kamala|harris|politic(ian|al)|communis(m|t)|socialis(m|t)|antisemit(e|ic|ism)|anti-semite|anti-semitism|semite|fur(ry|sona)|sona|babyfur|diaper|ageregression|(neo)?[-]?nazi|elon|musk|war crime|whataboutism|GOP|(anti)?[-]?(vaccine|vax|vaxx|vaxxed)|vaccination|covid|coronavirus|pandemic|(?-i:ICE)|congress(men|women|ional)?|secretary of defense|potus)s?\b")
+                // .case_insensitive(true)
                 .build()
                 .unwrap(),
             my_feed_db: my_feed_db.clone(),
         },
     };
 
-    let mut cleanup_interval = tokio::time::interval(Duration::from_secs(10));
+    let mut cleanup_interval = tokio::time::interval(Duration::from_secs(120));
     let cleanup_task = tokio::spawn(async move {
         loop {
             cleanup_interval.tick().await;
-            cleanup_posts(&fr_feed_db).await;
-            cleanup_posts(&my_feed_db).await;
+            cleanup_posts(&fr_feed_db, 10_000).await;
+            cleanup_posts(&my_feed_db, 40_000).await;
         }
     });
 
@@ -92,7 +94,7 @@ impl FeedHandler for MyFeedHandler {
             && !self.fr_regex.is_match(post.text.as_str())
             && post.labels.is_empty()
         {
-            // info!("Storing french feed post {post:?}");
+            trace!("Storing french feed post {post:?}");
 
             self.fr_feed_db
                 .lock()
@@ -109,7 +111,7 @@ impl FeedHandler for MyFeedHandler {
             && detected_language == Some(whatlang::Lang::Eng)
             && !self.my_regex.is_match(post.text.as_str())
         {
-            // info!("Storing my feed post {post:?}");
+            trace!("Storing my feed post {post:?}");
 
             self.my_feed_db
                 .lock()
@@ -176,10 +178,10 @@ impl FeedHandler for MyFeedHandler {
             .unwrap_or(0);
 
         let posts_per_page = 50;
-        let db = if request.feed == FR_FEED {
-            self.fr_feed_db.lock().await
+        let (db, threshold) = if request.feed == FR_FEED {
+            (self.fr_feed_db.lock().await, 0.05)
         } else if request.feed == MY_FEED {
-            self.my_feed_db.lock().await
+            (self.my_feed_db.lock().await, 0.005)
         } else {
             error!("Requested a nonexistent feed");
             return FeedResult {
@@ -210,17 +212,18 @@ impl FeedHandler for MyFeedHandler {
                 )
                 SELECT uri, likes
                 FROM sorted_posts
-                WHERE rank <= 0.05
+                WHERE rank <= ?1
                 ORDER BY timestamp DESC
-                LIMIT ? OFFSET ?;
+                LIMIT ?2 OFFSET ?3;
                 ",
             )
             .expect("Failed to prepare statement");
 
         let post_iter = stmt
-            .query_map([posts_per_page as i64, start_index as i64], |row| {
-                row.get::<_, String>(0)
-            })
+            .query_map(
+                params![threshold, posts_per_page as i64, start_index as i64],
+                |row| row.get::<_, String>(0),
+            )
             .expect("Failed to query posts");
 
         let posts: Vec<Uri> = post_iter.filter_map(|x| x.ok()).map(Uri).collect();
@@ -237,9 +240,7 @@ impl FeedHandler for MyFeedHandler {
     }
 }
 
-async fn cleanup_posts(db: &Arc<Mutex<Connection>>) {
-    const MAX_POSTS: usize = 10_000;
-
+async fn cleanup_posts(db: &Arc<Mutex<Connection>>, post_limit: usize) {
     let cleaned_posts = db
         .lock()
         .await
@@ -251,7 +252,7 @@ async fn cleanup_posts(db: &Arc<Mutex<Connection>>) {
                     SELECT uri
                     FROM posts
                     ORDER BY timestamp DESC
-                    LIMIT {MAX_POSTS}
+                    LIMIT {post_limit}
                 );
                 "
             ),
@@ -259,7 +260,7 @@ async fn cleanup_posts(db: &Arc<Mutex<Connection>>) {
         )
         .expect("Failed to clean up old posts");
 
-    info!("Cleaned up {cleaned_posts} posts");
+    trace!("Cleaned up {cleaned_posts} posts");
 }
 
 fn initialize_db(db: &Connection) {
