@@ -2782,7 +2782,7 @@ checksum = "c1e9a774a6c28142ac54bb25d25562e6bcf957493a184f15ad4eebccb23e410a"
 [[package]]
 name = "skyfeed"
 version = "0.6.0"
-source = "git+https://github.com/cyypherus/skyfeed.git?rev=eb7fa6abbbfc9fbbed0841db05b2a7c079d95fef#eb7fa6abbbfc9fbbed0841db05b2a7c079d95fef"
+source = "git+https://github.com/cyypherus/skyfeed.git?rev=eda67e72785c4eb1186f855b28365f9303e090cc#eda67e72785c4eb1186f855b28365f9303e090cc"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2854,6 +2854,13 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "log",
+ "metrics",
+ "metrics-exporter-prometheus",
+ "regex",
+ "rusqlite",
+ "skyfeed",
+ "tokio",
+ "whatlang",
  "metrics",
  "metrics-exporter-prometheus",
  "regex",
