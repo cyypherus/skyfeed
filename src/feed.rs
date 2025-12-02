@@ -6,7 +6,7 @@ use atrium_api::app::bsky::feed::get_feed_skeleton::Parameters as FeedSkeletonQu
 use atrium_api::app::bsky::feed::get_feed_skeleton::ParametersData as FeedSkeletonParameters;
 use atrium_api::types::Object;
 use env_logger::Env;
-use log::info;
+use log::{info, warn};
 use std::fmt::Debug;
 use std::net::SocketAddr;
 use warp::Filter;
@@ -113,7 +113,14 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
 
             let event_handler = tokio::spawn(async move {
                 let mut h = handler;
+                let mut warning_log_counter = 0usize;
                 while let Ok(event) = rx.recv_async().await {
+                    warning_log_counter += 1;
+                    let waiting_updates = rx.len();
+                    if waiting_updates >= 100 && warning_log_counter.is_multiple_of(5) {
+                        warning_log_counter = 0;
+                        warn!("{waiting_updates} updates are awaiting processing, your feed handler implementation may not be processing updates quickly enough. This will result in continuously increasing memory usage if it continues!")
+                    }
                     match event {
                         FirehoseEvent::Post(post) => {
                             h.insert_post(post).await;

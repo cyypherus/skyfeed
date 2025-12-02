@@ -1,6 +1,6 @@
 use log::{error, info, trace};
 use regex::Regex;
-use rusqlite::{params, params_from_iter, Connection};
+use rusqlite::{params, Connection};
 use skyfeed::{Config, Feed, FeedHandler, FeedResult, Post, Request, Uri};
 use std::{sync::Arc, time::Duration};
 use tokio::sync::Mutex;
@@ -86,22 +86,22 @@ impl FeedHandler for MyFeedHandler {
     async fn insert_post(&mut self, post: Post) {
         let detected_language = whatlang::detect_lang(&post.text);
         let timestamp = post.timestamp.timestamp();
-        let feed_type = if post.langs.iter().any(|lang| lang.contains("fr"))
+        let feed_to_insert = if post.langs.iter().any(|lang| lang.contains("fr"))
             && detected_language == Some(whatlang::Lang::Fra)
             && !self.fr_regex.is_match(post.text.as_str())
             && post.labels.is_empty()
         {
-            Some("fr")
+            Some(FR_FEED)
         } else if post.langs.iter().any(|lang| lang.contains("en"))
             && detected_language == Some(whatlang::Lang::Eng)
             && !self.my_regex.is_match(post.text.as_str())
         {
-            Some("en")
+            Some(MY_FEED)
         } else {
             None
         };
 
-        if let Some(feed) = feed_type {
+        if let Some(feed) = feed_to_insert {
             trace!("Queuing {} feed post {post:?}", feed);
             let mut pending = self.pending_posts.lock().await;
             pending.push((
@@ -128,9 +128,8 @@ impl FeedHandler for MyFeedHandler {
     }
 
     async fn like_post(&mut self, like_uri: Uri, liked_post_uri: Uri) {
-        trace!("Queuing like: {} on post {}", like_uri.0, liked_post_uri.0);
         let mut pending = self.pending_likes.lock().await;
-        for feed in &["fr", "en"] {
+        for feed in &[FR_FEED, MY_FEED] {
             pending.push((
                 liked_post_uri.0.clone(),
                 like_uri.0.clone(),
@@ -241,6 +240,7 @@ impl MyFeedHandler {
         }
 
         let posts_to_insert: Vec<_> = pending.drain(..).collect();
+        let count = posts_to_insert.len();
         drop(pending);
 
         let mut db = self.db.lock().await;
@@ -258,6 +258,7 @@ impl MyFeedHandler {
         }
 
         tx.commit().expect("Failed to commit transaction");
+        trace!("Successfully flushed {} posts", count);
     }
 
     async fn flush_likes(&self) {
@@ -267,6 +268,7 @@ impl MyFeedHandler {
         }
 
         let likes_to_insert: Vec<_> = pending.drain(..).collect();
+        let count = likes_to_insert.len();
         drop(pending);
 
         let mut db = self.db.lock().await;
@@ -284,6 +286,7 @@ impl MyFeedHandler {
         }
 
         tx.commit().expect("Failed to commit transaction");
+        trace!("Successfully flushed {} likes", count);
     }
 }
 
