@@ -1,8 +1,8 @@
 use log::{error, info, trace};
 use regex::Regex;
-use rusqlite::{params, Connection};
+use rusqlite::{Connection, params};
 use skyfeed::{Config, Feed, FeedHandler, FeedResult, Post, Request, Uri};
-use std::{sync::Arc, time::Duration};
+use std::{env, sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 
 const FR_FEED: &'static str = "fr";
@@ -10,8 +10,8 @@ const MY_FEED: &'static str = "cyys-feed";
 
 #[tokio::main]
 async fn main() {
-    let db = Connection::open("feed.db").expect("Failed to open database");
-    // let db = Connection::open("/space/feed.db").expect("Failed to open database");
+    // let db = Connection::open("feed.db").expect("Failed to open database");
+    let db = Connection::open("/space/feed.db").expect("Failed to open database");
     initialize_db(&db);
 
     let db = Arc::new(Mutex::new(db));
@@ -23,7 +23,6 @@ async fn main() {
                 .build()
                 .unwrap(),
             my_regex: regex::RegexBuilder::new(r"\b(?i:trump|biden|far[ ]?(left|right)|(left|right)[ ]?wing|republican|(un)?democrat(ic)?|immigration|immigrant|woke|AI|slop|conservative|liberal|racis(t|m)|homophob(e|ic|ia)|xenophob(e|ic|ia)|transphob(e|ic|ia)|slur|israel[i]?|palestin(e|ian)|ukrain(e|ian)|russia(n)?|tech bro|kamala|harris|politic(ian|al)|communis(m|t)|socialis(m|t)|antisemit(e|ic|ism)|anti-semite|anti-semitism|semite|fur(ry|sona)|sona|babyfur|diaper|ageregression|(neo)?[-]?nazi|elon|musk|war crime|whataboutism|GOP|(anti)?[-]?(vaccine|vax|vaxx|vaxxed)|vaccination|covid|coronavirus|pandemic|immunization|(?-i:ICE)|congress(men|women|ional)?|secretary of defense|potus)s?\b")
-                // .case_insensitive(true)
                 .build()
                 .unwrap(),
             db: db.clone(),
@@ -42,18 +41,18 @@ async fn main() {
         }
     });
 
-    // let publisher_did = env::var("PUBLISHER_DID").expect("PUBLISHER_DID env var not set");
-    // let feed_generator_hostname =
-    //     env::var("FEED_GENERATOR_HOSTNAME").expect("FEED_GENERATOR_HOSTNAME env var not set");
+    let publisher_did = env::var("PUBLISHER_DID").expect("PUBLISHER_DID env var not set");
+    let feed_generator_hostname =
+        env::var("FEED_GENERATOR_HOSTNAME").expect("FEED_GENERATOR_HOSTNAME env var not set");
 
     tokio::join!(
         feed.start_with_config(
             vec![FR_FEED, MY_FEED],
-            // Config {
-            //     publisher_did,
-            //     feed_generator_hostname
-            // },
-            Config::load_env_config(),
+            Config {
+                publisher_did,
+                feed_generator_hostname
+            },
+            // Config::load_env_config(),
             ([0, 0, 0, 0], 3030)
         ),
         cleanup_task
@@ -78,7 +77,7 @@ struct MyFeedHandler {
     my_regex: Regex,
     db: Arc<Mutex<Connection>>,
     pending_posts: Arc<Mutex<Vec<(String, String, i64, String)>>>,
-    pending_likes: Arc<Mutex<Vec<(String, String, String)>>>,
+    pending_likes: Arc<Mutex<Vec<(String, String)>>>,
     batch_size: usize,
 }
 
@@ -129,13 +128,7 @@ impl FeedHandler for MyFeedHandler {
 
     async fn like_post(&mut self, like_uri: Uri, liked_post_uri: Uri) {
         let mut pending = self.pending_likes.lock().await;
-        for feed in &[FR_FEED, MY_FEED] {
-            pending.push((
-                liked_post_uri.0.clone(),
-                like_uri.0.clone(),
-                feed.to_string(),
-            ));
-        }
+        pending.push((liked_post_uri.0.clone(), like_uri.0.clone()));
 
         if pending.len() >= self.batch_size {
             drop(pending);
@@ -276,11 +269,11 @@ impl MyFeedHandler {
 
         {
             let mut stmt = tx.prepare(
-                "INSERT OR REPLACE INTO likes (post_uri, like_uri) SELECT ?1, ?2 WHERE EXISTS (SELECT 1 FROM posts WHERE uri = ?1 AND feed = ?3)"
+                "INSERT OR REPLACE INTO likes (post_uri, like_uri) SELECT ?1, ?2 WHERE EXISTS (SELECT 1 FROM posts WHERE uri = ?1)"
             ).expect("Failed to prepare statement");
 
-            for (post_uri, like_uri, feed) in likes_to_insert {
-                stmt.execute(params![post_uri, like_uri, feed])
+            for (post_uri, like_uri) in likes_to_insert {
+                stmt.execute(params![post_uri, like_uri])
                     .expect("Failed to insert like");
             }
         }
