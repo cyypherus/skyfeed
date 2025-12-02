@@ -6,7 +6,7 @@ publish = false
 
 [dependencies]
 log = "0.4.25"
-skyfeed = { git = "https://github.com/cyypherus/skyfeed.git", rev = "eda67e72785c4eb1186f855b28365f9303e090cc" }
+skyfeed = { git = "https://github.com/cyypherus/skyfeed.git", rev = "eb7fa6abbbfc9fbbed0841db05b2a7c079d95fef" }
 # skyfeed = { path = "../.." }
 tokio = { version = "1.43.0", features = ["full", "time"] }
 rusqlite = { version = "0.33.0", features = ["bundled"] }

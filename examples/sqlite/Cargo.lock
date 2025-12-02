@@ -337,21 +337,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
-name = "basic"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "log",
- "metrics",
- "metrics-exporter-prometheus",
- "regex",
- "rusqlite",
- "skyfeed",
- "tokio",
- "whatlang",
-]
-
-[[package]]
 name = "bindgen"
 version = "0.72.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -912,18 +897,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "flume"
-version = "0.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da0e4dd2a88388a1f4ccc7c9ce104604dab68d9f408dc34cd45823d5a9069095"
-dependencies = [
- "futures-core",
- "futures-sink",
- "nanorand",
- "spin",
-]
-
-[[package]]
 name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1071,10 +1044,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "335ff9f135e4384c8150d6f27c6daed433577f86b4750418338c01a1a2528592"
 dependencies = [
  "cfg-if",
- "js-sys",
  "libc",
  "wasi",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -2000,15 +1971,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "nanorand"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a51313c5820b0b02bd422f4b44776fbf47961755c74ce64afc73bfad10226c3"
-dependencies = [
- "getrandom 0.2.16",
-]
-
-[[package]]
 name = "native-tls"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2820,6 +2782,7 @@ checksum = "c1e9a774a6c28142ac54bb25d25562e6bcf957493a184f15ad4eebccb23e410a"
 [[package]]
 name = "skyfeed"
 version = "0.6.0"
+source = "git+https://github.com/cyypherus/skyfeed.git?rev=eb7fa6abbbfc9fbbed0841db05b2a7c079d95fef#eb7fa6abbbfc9fbbed0841db05b2a7c079d95fef"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2830,7 +2793,6 @@ dependencies = [
  "clap",
  "dotenv",
  "env_logger",
- "flume",
  "futures",
  "ipld-core",
  "log",
@@ -2885,8 +2847,20 @@ name = "spin"
 version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
+
+[[package]]
+name = "sqlite-feed"
+version = "0.1.0"
 dependencies = [
- "lock_api",
+ "chrono",
+ "log",
+ "metrics",
+ "metrics-exporter-prometheus",
+ "regex",
+ "rusqlite",
+ "skyfeed",
+ "tokio",
+ "whatlang",
 ]
 
 [[package]]
