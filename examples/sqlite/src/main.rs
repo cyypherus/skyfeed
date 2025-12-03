@@ -5,8 +5,8 @@ use skyfeed::{Config, Feed, FeedHandler, FeedResult, Post, Request, Uri};
 use std::{env, sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 
-const FR_FEED: &'static str = "fr";
-const MY_FEED: &'static str = "cyys-feed";
+const FR_FEED: &str = "fr";
+const MY_FEED: &str = "cyys-feed";
 
 #[tokio::main]
 async fn main() {
@@ -169,34 +169,34 @@ impl FeedHandler for MyFeedHandler {
 
         let db = self.db.lock().await;
         let mut stmt = db
-            .prepare(&format!(
+            .prepare(
                 "
-                    WITH ranked_posts AS (
-                      SELECT
-                        posts.uri,
-                        posts.timestamp,
-                        COUNT(likes.like_uri) AS likes
-                      FROM posts
-                      WHERE posts.feed = ?4
-                      LEFT JOIN likes ON posts.uri = likes.post_uri
-                      GROUP BY posts.uri
-                      HAVING COUNT(likes.like_uri) > 0
-                    ),
-                    sorted_posts AS (
-                      SELECT
-                        uri,
-                        timestamp,
-                        likes,
-                        PERCENT_RANK() OVER (ORDER BY likes DESC) AS rank
-                      FROM ranked_posts
-                    )
-                    SELECT uri, likes
-                    FROM sorted_posts
-                    WHERE rank <= ?1
-                    ORDER BY timestamp DESC
-                    LIMIT ?2 OFFSET ?3;
-                    "
-            ))
+                WITH ranked_posts AS (
+                  SELECT
+                    posts.uri,
+                    posts.timestamp,
+                    COUNT(likes.like_uri) AS likes
+                  FROM posts
+                  LEFT JOIN likes ON posts.uri = likes.post_uri
+                  WHERE posts.feed = ?4
+                  GROUP BY posts.uri
+                  HAVING COUNT(likes.like_uri) > 0
+                ),
+                sorted_posts AS (
+                  SELECT
+                    uri,
+                    timestamp,
+                    likes,
+                    PERCENT_RANK() OVER (ORDER BY likes DESC) AS rank
+                  FROM ranked_posts
+                )
+                SELECT uri, likes
+                FROM sorted_posts
+                WHERE rank <= ?1
+                ORDER BY timestamp DESC;
+                LIMIT ?2 OFFSET ?3
+                ",
+            )
             .expect("Failed to prepare statement");
 
         let post_iter = stmt
