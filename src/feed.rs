@@ -117,7 +117,7 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
                 while let Ok(event) = rx.recv_async().await {
                     warning_log_counter += 1;
                     let waiting_updates = rx.len();
-                    if waiting_updates >= 100 && warning_log_counter >= 5 {
+                    if waiting_updates >= 200 && warning_log_counter >= 5 {
                         warning_log_counter = 0;
                         warn!(
                             "{waiting_updates} updates are awaiting processing, your feed handler implementation may not be processing updates quickly enough. This will result in continuously increasing memory usage if it continues!"

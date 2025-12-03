@@ -16,19 +16,20 @@ async fn main() {
 
     let db = Arc::new(Mutex::new(db));
 
+    let pending_posts = Arc::new(Mutex::new(Vec::new()));
+    let pending_likes = Arc::new(Mutex::new(Vec::new()));
     let mut feed = MyFeed {
         handler: MyFeedHandler {
             fr_regex: regex::RegexBuilder::new(r"\\b(macron|le[- ]?pen|mélenchon|fillon|sarkozy|LREM|RN|gilets\s+jaunes|politique|trudeau|libéraux?|conservateurs?|bloc(?:\s+québécois)?|n(?:ouveau\s+)?parti(?:\s+démocratique)?|constitution(?:nel(?:le)?)?|scandale|gouvernement)\b|(extrême\s+(?:droite|gauche))")
                 .case_insensitive(true)
                 .build()
                 .unwrap(),
-            my_regex: regex::RegexBuilder::new(r"\b(?i:trump|biden|far[ ]?(left|right)|(left|right)[ ]?wing|republican|(un)?democrat(ic)?|immigration|immigrant|woke|AI|slop|conservative|liberal|racis(t|m)|homophob(e|ic|ia)|xenophob(e|ic|ia)|transphob(e|ic|ia)|slur|israel[i]?|palestin(e|ian)|ukrain(e|ian)|russia(n)?|tech bro|kamala|harris|politic(ian|al)|communis(m|t)|socialis(m|t)|antisemit(e|ic|ism)|anti-semite|anti-semitism|semite|fur(ry|sona)|sona|babyfur|diaper|ageregression|(neo)?[-]?nazi|elon|musk|war crime|whataboutism|GOP|(anti)?[-]?(vaccine|vax|vaxx|vaxxed)|vaccination|covid|coronavirus|pandemic|immunization|(?-i:ICE)|congress(men|women|ional)?|secretary of defense|potus)s?\b")
+            my_regex: regex::RegexBuilder::new(r"\b(?i:trump|biden|far[ ]?(left|right)|(left|right)[ ]?wing|republican|(un)?democrat(ic)?|immigration|immigrant|woke|AI|slop|conservative|liberal|racis(t|m)|homophob(e|ic|ia)|xenophob(e|ic|ia)|transphob(e|ic|ia)|slur|israel[i]?|palestin(e|ian)|ukrain(e|ian)|russia(n)?|tech bro|kamala|harris|politic(ian|al)|communis(m|t)|socialis(m|t)|antisemit(e|ic|ism)|anti-semite|anti-semitism|semite|fur(ry|sona)|sona|babyfur|diaper|ageregression|(neo)?[-]?nazi|elon|musk|war crime|whataboutism|GOP|(anti)?[-]?(vaccine|vax|vaxx|vaxxed)|vaccination|covid|coronavirus|pandemic|immunization|(?-i:ICE)|congress(men|women|ional)?|secretary of defense|(sco|po)tus|FBI)s?\b")
                 .build()
                 .unwrap(),
             db: db.clone(),
-            pending_posts: Arc::new(Mutex::new(Vec::new())),
-            pending_likes: Arc::new(Mutex::new(Vec::new())),
-            batch_size: 100,
+            pending_posts:pending_posts.clone(),
+            pending_likes:pending_likes.clone(),
         },
     };
 
@@ -38,6 +39,16 @@ async fn main() {
         loop {
             cleanup_interval.tick().await;
             cleanup_posts(&db_clone, 50_000).await;
+        }
+    });
+    let posts_for_flushing = pending_posts.clone();
+    let likes_for_flushing = pending_likes.clone();
+    let mut flush_interval = tokio::time::interval(Duration::from_secs(10));
+    let flush_task = tokio::spawn(async move {
+        loop {
+            flush_interval.tick().await;
+            MyFeedHandler::flush_posts(&db.clone(), &posts_for_flushing).await;
+            MyFeedHandler::flush_likes(&db.clone(), &likes_for_flushing).await;
         }
     });
 
@@ -55,7 +66,8 @@ async fn main() {
             // Config::load_env_config(),
             ([0, 0, 0, 0], 3030)
         ),
-        cleanup_task
+        cleanup_task,
+        flush_task
     )
     .1
     .expect("Starting tasks failed");
@@ -78,7 +90,6 @@ struct MyFeedHandler {
     db: Arc<Mutex<Connection>>,
     pending_posts: Arc<Mutex<Vec<(String, String, i64, String)>>>,
     pending_likes: Arc<Mutex<Vec<(String, String)>>>,
-    batch_size: usize,
 }
 
 impl FeedHandler for MyFeedHandler {
@@ -109,11 +120,6 @@ impl FeedHandler for MyFeedHandler {
                 timestamp,
                 feed.to_string(),
             ));
-
-            if pending.len() >= self.batch_size {
-                drop(pending);
-                self.flush_posts().await;
-            }
         }
     }
 
@@ -129,11 +135,6 @@ impl FeedHandler for MyFeedHandler {
     async fn like_post(&mut self, like_uri: Uri, liked_post_uri: Uri) {
         let mut pending = self.pending_likes.lock().await;
         pending.push((liked_post_uri.0.clone(), like_uri.0.clone()));
-
-        if pending.len() >= self.batch_size {
-            drop(pending);
-            self.flush_likes().await;
-        }
     }
 
     async fn delete_like(&mut self, like_uri: Uri) {
@@ -226,8 +227,11 @@ impl FeedHandler for MyFeedHandler {
 }
 
 impl MyFeedHandler {
-    async fn flush_posts(&self) {
-        let mut pending = self.pending_posts.lock().await;
+    async fn flush_posts(
+        db: &Arc<Mutex<Connection>>,
+        pending_posts: &Arc<Mutex<Vec<(String, String, i64, String)>>>,
+    ) {
+        let mut pending = pending_posts.lock().await;
         if pending.is_empty() {
             return;
         }
@@ -236,7 +240,7 @@ impl MyFeedHandler {
         let count = posts_to_insert.len();
         drop(pending);
 
-        let mut db = self.db.lock().await;
+        let mut db = db.lock().await;
         let tx = db.transaction().expect("Failed to start transaction");
 
         {
@@ -254,8 +258,11 @@ impl MyFeedHandler {
         trace!("Successfully flushed {} posts", count);
     }
 
-    async fn flush_likes(&self) {
-        let mut pending = self.pending_likes.lock().await;
+    async fn flush_likes(
+        db: &Arc<Mutex<Connection>>,
+        pending_likes: &Arc<Mutex<Vec<(String, String)>>>,
+    ) {
+        let mut pending = pending_likes.lock().await;
         if pending.is_empty() {
             return;
         }
@@ -264,7 +271,7 @@ impl MyFeedHandler {
         let count = likes_to_insert.len();
         drop(pending);
 
-        let mut db = self.db.lock().await;
+        let mut db = db.lock().await;
         let tx = db.transaction().expect("Failed to start transaction");
 
         {
