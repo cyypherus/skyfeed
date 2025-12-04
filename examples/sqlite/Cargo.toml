@@ -4,9 +4,12 @@ version = "0.1.0"
 edition = "2024"
 publish = false
 
+[features]
+local = []
+
 [dependencies]
 log = "0.4.25"
-skyfeed = { git = "https://github.com/cyypherus/skyfeed.git", rev = "8ff6f254d940fc71e7726af900ddf9a4c6d25813" }
+skyfeed = { git = "https://github.com/cyypherus/skyfeed.git", rev = "650e266edb7086e8793d5c6afeca9cc92189dadb" }
 # skyfeed = { path = "../.." }
 tokio = { version = "1.43.0", features = ["full", "time"] }
 rusqlite = { version = "0.33.0", features = ["bundled"] }

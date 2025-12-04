@@ -33,22 +33,17 @@ async fn main() {
         },
     };
 
-    let mut cleanup_interval = tokio::time::interval(Duration::from_secs(120));
     let db_clone = db.clone();
-    let cleanup_task = tokio::spawn(async move {
-        loop {
-            cleanup_interval.tick().await;
-            cleanup_posts(&db_clone, 50_000).await;
-        }
-    });
     let posts_for_flushing = pending_posts.clone();
     let likes_for_flushing = pending_likes.clone();
     let mut flush_interval = tokio::time::interval(Duration::from_secs(10));
     let flush_task = tokio::spawn(async move {
         loop {
             flush_interval.tick().await;
-            MyFeedHandler::flush_posts(&db.clone(), &posts_for_flushing).await;
-            MyFeedHandler::flush_likes(&db.clone(), &likes_for_flushing).await;
+            flush_posts(&db.clone(), &posts_for_flushing).await;
+            flush_likes(&db.clone(), &likes_for_flushing).await;
+            cleanup_posts(&db_clone, FR_FEED, 10_000).await;
+            cleanup_posts(&db_clone, MY_FEED, 50_000).await;
         }
     });
 
@@ -66,7 +61,6 @@ async fn main() {
             // Config::load_env_config(),
             ([0, 0, 0, 0], 3030)
         ),
-        cleanup_task,
         flush_task
     )
     .1
@@ -112,7 +106,7 @@ impl FeedHandler for MyFeedHandler {
         };
 
         if let Some(feed) = feed_to_insert {
-            trace!("Queuing {} feed post {post:?}", feed);
+            // trace!("Queuing {} feed post {post:?}", feed);
             let mut pending = self.pending_posts.lock().await;
             pending.push((
                 post.uri.0.clone(),
@@ -226,91 +220,90 @@ impl FeedHandler for MyFeedHandler {
     }
 }
 
-impl MyFeedHandler {
-    async fn flush_posts(
-        db: &Arc<Mutex<Connection>>,
-        pending_posts: &Arc<Mutex<Vec<(String, String, i64, String)>>>,
-    ) {
-        let mut pending = pending_posts.lock().await;
-        if pending.is_empty() {
-            return;
-        }
-
-        let posts_to_insert: Vec<_> = pending.drain(..).collect();
-        let count = posts_to_insert.len();
-        drop(pending);
-
-        let mut db = db.lock().await;
-        let tx = db.transaction().expect("Failed to start transaction");
-
-        {
-            let mut stmt = tx.prepare(
-                "INSERT OR REPLACE INTO posts (uri, text, timestamp, feed) VALUES (?1, ?2, ?3, ?4)"
-            ).expect("Failed to prepare statement");
-
-            for (uri, text, timestamp, feed) in posts_to_insert {
-                stmt.execute(params![uri, text, timestamp, feed])
-                    .expect("Failed to insert post");
-            }
-        }
-
-        tx.commit().expect("Failed to commit transaction");
-        trace!("Successfully flushed {} posts", count);
+async fn flush_posts(
+    db: &Arc<Mutex<Connection>>,
+    pending_posts: &Arc<Mutex<Vec<(String, String, i64, String)>>>,
+) {
+    let mut pending = pending_posts.lock().await;
+    if pending.is_empty() {
+        return;
     }
 
-    async fn flush_likes(
-        db: &Arc<Mutex<Connection>>,
-        pending_likes: &Arc<Mutex<Vec<(String, String)>>>,
-    ) {
-        let mut pending = pending_likes.lock().await;
-        if pending.is_empty() {
-            return;
+    let posts_to_insert: Vec<_> = pending.drain(..).collect();
+    let count = posts_to_insert.len();
+    drop(pending);
+
+    let mut db = db.lock().await;
+    let tx = db.transaction().expect("Failed to start transaction");
+
+    {
+        let mut stmt = tx
+            .prepare(
+                "INSERT OR REPLACE INTO posts (uri, text, timestamp, feed) VALUES (?1, ?2, ?3, ?4)",
+            )
+            .expect("Failed to prepare statement");
+
+        for (uri, text, timestamp, feed) in posts_to_insert {
+            stmt.execute(params![uri, text, timestamp, feed])
+                .expect("Failed to insert post");
         }
+    }
 
-        let likes_to_insert: Vec<_> = pending.drain(..).collect();
-        let count = likes_to_insert.len();
-        drop(pending);
+    tx.commit().expect("Failed to commit transaction");
+    trace!("Successfully flushed {} posts", count);
+}
 
-        let mut db = db.lock().await;
-        let tx = db.transaction().expect("Failed to start transaction");
+async fn flush_likes(
+    db: &Arc<Mutex<Connection>>,
+    pending_likes: &Arc<Mutex<Vec<(String, String)>>>,
+) {
+    let mut pending = pending_likes.lock().await;
+    if pending.is_empty() {
+        return;
+    }
 
-        {
-            let mut stmt = tx.prepare(
+    let likes_to_insert: Vec<_> = pending.drain(..).collect();
+    let count = likes_to_insert.len();
+    drop(pending);
+
+    let mut db = db.lock().await;
+    let tx = db.transaction().expect("Failed to start transaction");
+
+    {
+        let mut stmt = tx.prepare(
                 "INSERT OR REPLACE INTO likes (post_uri, like_uri) SELECT ?1, ?2 WHERE EXISTS (SELECT 1 FROM posts WHERE uri = ?1)"
             ).expect("Failed to prepare statement");
 
-            for (post_uri, like_uri) in likes_to_insert {
-                stmt.execute(params![post_uri, like_uri])
-                    .expect("Failed to insert like");
-            }
+        for (post_uri, like_uri) in likes_to_insert {
+            stmt.execute(params![post_uri, like_uri])
+                .expect("Failed to insert like");
         }
-
-        tx.commit().expect("Failed to commit transaction");
-        trace!("Successfully flushed {} likes", count);
     }
+
+    tx.commit().expect("Failed to commit transaction");
+    trace!("Successfully flushed {} likes", count);
 }
 
-async fn cleanup_posts(db: &Arc<Mutex<Connection>>, post_limit: usize) {
+async fn cleanup_posts(db: &Arc<Mutex<Connection>>, feed: &str, post_limit: usize) {
     let cleaned_posts = db
         .lock()
         .await
         .execute(
-            &format!(
-                "
+            "
                 DELETE FROM posts
                 WHERE uri NOT IN (
                     SELECT uri
                     FROM posts
+                    WHERE feed = ?1
                     ORDER BY timestamp DESC
-                    LIMIT {post_limit}
+                    LIMIT ?2
                 );
-                "
-            ),
-            [],
+            ",
+            params![feed, post_limit],
         )
         .expect("Failed to clean up old posts");
 
-    trace!("Cleaned up {cleaned_posts} posts");
+    trace!("Cleaned up {cleaned_posts} posts on {feed}");
 }
 
 fn initialize_db(db: &Connection) {
