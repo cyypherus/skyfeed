@@ -1,3 +1,4 @@
+use dotenv::dotenv;
 use log::{error, info, trace};
 use regex::Regex;
 use rusqlite::{Connection, params};
@@ -10,26 +11,37 @@ const MY_FEED: &str = "cyys-feed";
 
 #[tokio::main]
 async fn main() {
-    // let db = Connection::open("feed.db").expect("Failed to open database");
-    let db = Connection::open("/space/feed.db").expect("Failed to open database");
+    dotenv().expect("No .env");
+    let db = Connection::open("feed.db").expect("Failed to open database");
+    // let db = Connection::open("/space/feed.db").expect("Failed to open database");
     initialize_db(&db);
 
     let db = Arc::new(Mutex::new(db));
 
+    let my_feed_regex = env::var("MY_FEED_REGEX").expect("Missing feed regex");
+    let fr_feed_regex = env::var("FR_FEED_REGEX").expect("Missing feed regex");
     let pending_posts = Arc::new(Mutex::new(Vec::new()));
     let pending_likes = Arc::new(Mutex::new(Vec::new()));
     let mut feed = MyFeed {
         handler: MyFeedHandler {
-            fr_regex: regex::RegexBuilder::new(r"\\b(macron|le[- ]?pen|mélenchon|fillon|sarkozy|LREM|RN|gilets\s+jaunes|politique|trudeau|libéraux?|conservateurs?|bloc(?:\s+québécois)?|n(?:ouveau\s+)?parti(?:\s+démocratique)?|constitution(?:nel(?:le)?)?|scandale|gouvernement)\b|(extrême\s+(?:droite|gauche))")
+            fr_threshold: env::var("FR_FEED_THRESHOLD")
+                .expect("Missing threshold")
+                .parse::<f32>()
+                .expect("Invalid threshold"),
+            my_threshold: env::var("MY_FEED_THRESHOLD")
+                .expect("Missing threshold")
+                .parse::<f32>()
+                .expect("Invalid threshold"),
+            fr_regex: regex::RegexBuilder::new(fr_feed_regex.as_str())
                 .case_insensitive(true)
                 .build()
                 .unwrap(),
-            my_regex: regex::RegexBuilder::new(r"\b(?i:trump|biden|far[ ]?(left|right)|(left|right)[ ]?wing|republican|(un)?democrat(ic)?|immigration|immigrant|woke|AI|slop|conservative|liberal|racis(t|m)|homophob(e|ic|ia)|xenophob(e|ic|ia)|transphob(e|ic|ia)|slur|israel[i]?|palestin(e|ian)|ukrain(e|ian)|russia(n)?|tech bro|kamala|harris|politic(ian|al)|communis(m|t)|socialis(m|t)|antisemit(e|ic|ism)|anti-semite|anti-semitism|semite|fur(ry|sona)|sona|babyfur|diaper|ageregression|(neo)?[-]?nazi|elon|musk|war crime|whataboutism|GOP|(anti)?[-]?(vaccine|vax|vaxx|vaxxed)|vaccination|covid|coronavirus|pandemic|immunization|(?-i:ICE)|congress(men|women|ional)?|secretary of defense|(sco|po)tus|FBI)s?\b")
+            my_regex: regex::RegexBuilder::new(my_feed_regex.as_str())
                 .build()
                 .unwrap(),
             db: db.clone(),
-            pending_posts:pending_posts.clone(),
-            pending_likes:pending_likes.clone(),
+            pending_posts: pending_posts.clone(),
+            pending_likes: pending_likes.clone(),
         },
     };
 
@@ -79,6 +91,8 @@ impl Feed<MyFeedHandler> for MyFeed {
 
 #[derive(Clone)]
 struct MyFeedHandler {
+    fr_threshold: f32,
+    my_threshold: f32,
     fr_regex: Regex,
     my_regex: Regex,
     db: Arc<Mutex<Connection>>,
@@ -151,9 +165,9 @@ impl FeedHandler for MyFeedHandler {
 
         let posts_per_page = 50;
         let threshold = if request.feed == FR_FEED {
-            0.05
+            self.fr_threshold
         } else if request.feed == MY_FEED {
-            0.005
+            self.my_threshold
         } else {
             error!("Requested a nonexistent feed");
             return FeedResult {
@@ -289,21 +303,30 @@ async fn cleanup_posts(db: &Arc<Mutex<Connection>>, feed: &str, post_limit: usiz
         .lock()
         .await
         .execute(
-            "
-                DELETE FROM posts
-                WHERE uri NOT IN (
-                    SELECT uri
-                    FROM posts
-                    WHERE feed = ?1
-                    ORDER BY timestamp DESC
-                    LIMIT ?2
-                );
-            ",
+            "DELETE FROM posts
+            WHERE feed = ?1
+              AND uri NOT IN (
+                SELECT uri
+                FROM posts
+                WHERE feed = ?1
+                ORDER BY timestamp DESC
+                LIMIT ?2
+            );",
             params![feed, post_limit],
         )
         .expect("Failed to clean up old posts");
 
-    trace!("Cleaned up {cleaned_posts} posts on {feed}");
+    let remaining_posts = db
+        .lock()
+        .await
+        .query_row(
+            "SELECT COUNT(*) FROM posts WHERE feed = ?1",
+            params![feed],
+            |row| row.get::<_, usize>(0),
+        )
+        .expect("Failed to count remaining posts");
+
+    info!("Cleaned up {cleaned_posts} posts on {feed}. {remaining_posts} posts remain.");
 }
 
 fn initialize_db(db: &Connection) {
