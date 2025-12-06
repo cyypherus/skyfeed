@@ -18,13 +18,9 @@ async fn main() {
     let db = Connection::open("/space/feed.db").expect("Failed to open database");
     initialize_db(&db);
 
-    let db = Arc::new(Mutex::new(db));
-
     let my_feed_regex = env::var("MY_FEED_REGEX").expect("Missing feed regex");
     let fr_feed_regex = env::var("FR_FEED_REGEX").expect("Missing feed regex");
-    let pending_posts = Arc::new(Mutex::new(Vec::new()));
-    let pending_likes = Arc::new(Mutex::new(Vec::new()));
-    let handler = MyFeedHandler {
+    let handler = Arc::new(Mutex::new(MyFeedHandler {
         fr_regex: regex::RegexBuilder::new(fr_feed_regex.as_str())
             .case_insensitive(true)
             .build()
@@ -32,22 +28,21 @@ async fn main() {
         my_regex: regex::RegexBuilder::new(my_feed_regex.as_str())
             .build()
             .unwrap(),
-        db: db.clone(),
-        pending_posts: pending_posts.clone(),
-        pending_likes: pending_likes.clone(),
-    };
+        db: Mutex::new(db),
+        pending_posts: Vec::new(),
+        pending_likes: Vec::new(),
+    }));
 
-    let db_clone = db.clone();
-    let posts_for_flushing = pending_posts.clone();
-    let likes_for_flushing = pending_likes.clone();
+    let handler_clone = handler.clone();
     let mut flush_interval = tokio::time::interval(Duration::from_secs(10));
     let flush_task = tokio::spawn(async move {
         loop {
             flush_interval.tick().await;
-            flush_posts(&db.clone(), &posts_for_flushing).await;
-            flush_likes(&db.clone(), &likes_for_flushing).await;
-            cleanup_posts(&db_clone, FR_FEED, 10_000).await;
-            cleanup_posts(&db_clone, MY_FEED, 200_000).await;
+            let mut handler = handler_clone.lock().await;
+            handler.flush_posts().await;
+            handler.flush_likes().await;
+            handler.cleanup_posts(FR_FEED, 10_000).await;
+            handler.cleanup_posts(MY_FEED, 200_000).await;
         }
     });
 
@@ -68,13 +63,113 @@ async fn main() {
     .expect("Starting tasks failed");
 }
 
-#[derive(Clone)]
 struct MyFeedHandler {
     fr_regex: Regex,
     my_regex: Regex,
-    db: Arc<Mutex<Connection>>,
-    pending_posts: Arc<Mutex<Vec<(String, String, i64, String)>>>,
-    pending_likes: Arc<Mutex<Vec<(String, String)>>>,
+    db: Mutex<Connection>,
+    pending_posts: Vec<(String, String, i64, String)>,
+    pending_likes: Vec<(String, String)>,
+}
+
+impl MyFeedHandler {
+    async fn flush_posts(&mut self) {
+        if self.pending_posts.is_empty() {
+            return;
+        }
+
+        let posts_to_insert: Vec<_> = self.pending_posts.drain(..).collect();
+        let count = posts_to_insert.len();
+
+        let mut db = self.db.lock().await;
+        let tx = db.transaction().expect("Failed to start transaction");
+
+        {
+            let mut stmt = tx
+                .prepare(
+                    "INSERT OR REPLACE INTO posts (uri, text, timestamp, feed) VALUES (?1, ?2, ?3, ?4)",
+                )
+                .expect("Failed to prepare statement");
+
+            for (uri, text, timestamp, feed) in posts_to_insert {
+                stmt.execute(params![uri, text, timestamp, feed])
+                    .expect("Failed to insert post");
+            }
+        }
+
+        tx.commit().expect("Failed to commit transaction");
+        trace!("Successfully flushed {} posts", count);
+    }
+
+    async fn flush_likes(&mut self) {
+        if self.pending_likes.is_empty() {
+            return;
+        }
+
+        let likes_to_insert: Vec<_> = self.pending_likes.drain(..).collect();
+        let count = likes_to_insert.len();
+
+        let mut db = self.db.lock().await;
+        let tx = db.transaction().expect("Failed to start transaction");
+
+        {
+            let mut stmt = tx.prepare(
+                    "INSERT OR REPLACE INTO likes (post_uri, like_uri) SELECT ?1, ?2 WHERE EXISTS (SELECT 1 FROM posts WHERE uri = ?1)"
+                ).expect("Failed to prepare statement");
+
+            for (post_uri, like_uri) in likes_to_insert {
+                stmt.execute(params![post_uri, like_uri])
+                    .expect("Failed to insert like");
+            }
+        }
+
+        tx.commit().expect("Failed to commit transaction");
+        trace!("Successfully flushed {} likes", count);
+    }
+
+    async fn cleanup_posts(&mut self, feed: &str, post_limit: usize) {
+        let db = self.db.lock().await;
+        let oldest_timestamp = db
+            .query_row(
+                "SELECT MIN(timestamp) FROM posts WHERE feed = ?1",
+                params![feed],
+                |row| row.get::<_, Option<i64>>(0),
+            )
+            .expect("Failed to get oldest post timestamp");
+
+        let oldest_date = oldest_timestamp.map(|ts| {
+            chrono::DateTime::<chrono::Utc>::from_timestamp(ts, 0)
+                .map(|dt| dt.to_rfc3339())
+                .unwrap_or_else(|| "Invalid timestamp".to_string())
+        });
+
+        let cleaned_posts = db
+            .execute(
+                "DELETE FROM posts
+                WHERE feed = ?1
+                  AND uri NOT IN (
+                    SELECT uri
+                    FROM posts
+                    WHERE feed = ?1
+                    ORDER BY timestamp DESC
+                    LIMIT ?2
+                );",
+                params![feed, post_limit],
+            )
+            .expect("Failed to clean up old posts");
+
+        let remaining_posts = db
+            .query_row(
+                "SELECT COUNT(*) FROM posts WHERE feed = ?1",
+                params![feed],
+                |row| row.get::<_, usize>(0),
+            )
+            .expect("Failed to count remaining posts");
+
+        info!(
+            "Cleaned up {cleaned_posts} posts on {feed}. Oldest post available: {}. {remaining_posts} posts remain.",
+            oldest_date.unwrap_or_else(|| "No posts".to_string())
+        );
+    }
 }
 
 impl FeedHandler for MyFeedHandler {
@@ -101,9 +196,7 @@ impl FeedHandler for MyFeedHandler {
         };
 
         if let Some(feed) = feed_to_insert {
-            // trace!("Queuing {} feed post {post:?}", feed);
-            let mut pending = self.pending_posts.lock().await;
-            pending.push((
+            self.pending_posts.push((
                 post.uri.0.clone(),
                 post.text.clone(),
                 timestamp,
@@ -122,8 +215,8 @@ impl FeedHandler for MyFeedHandler {
     }
 
     async fn insert_like(&mut self, like_uri: Uri, liked_post_uri: Uri) {
-        let mut pending = self.pending_likes.lock().await;
-        pending.push((liked_post_uri.0.clone(), like_uri.0.clone()));
+        self.pending_likes
+            .push((liked_post_uri.0.clone(), like_uri.0.clone()));
     }
 
     async fn delete_like(&mut self, like_uri: Uri) {
@@ -207,10 +300,14 @@ impl FeedHandler for MyFeedHandler {
 
         info!("Returned {} posts for feed {}", posts.len(), request.feed);
 
-        let next_cursor = if posts.len() == request_limit {
-            let next_offset = post_offset + posts.len();
-            if next_offset < 100 {
-                Some(format!("{}:{}", hours_back, next_offset))
+        let next_cursor = if !posts.is_empty() {
+            if posts.len() == request_limit {
+                let next_offset = post_offset + posts.len();
+                if next_offset < 100 {
+                    Some(format!("{}:{}", hours_back, next_offset))
+                } else {
+                    Some(format!("{}:0", hours_back + 1))
+                }
             } else {
                 Some(format!("{}:0", hours_back + 1))
             }
@@ -223,120 +320,6 @@ impl FeedHandler for MyFeedHandler {
             feed: posts,
         }
     }
-}
-
-async fn flush_posts(
-    db: &Arc<Mutex<Connection>>,
-    pending_posts: &Arc<Mutex<Vec<(String, String, i64, String)>>>,
-) {
-    let mut pending = pending_posts.lock().await;
-    if pending.is_empty() {
-        return;
-    }
-
-    let posts_to_insert: Vec<_> = pending.drain(..).collect();
-    let count = posts_to_insert.len();
-    drop(pending);
-
-    let mut db = db.lock().await;
-    let tx = db.transaction().expect("Failed to start transaction");
-
-    {
-        let mut stmt = tx
-            .prepare(
-                "INSERT OR REPLACE INTO posts (uri, text, timestamp, feed) VALUES (?1, ?2, ?3, ?4)",
-            )
-            .expect("Failed to prepare statement");
-
-        for (uri, text, timestamp, feed) in posts_to_insert {
-            stmt.execute(params![uri, text, timestamp, feed])
-                .expect("Failed to insert post");
-        }
-    }
-
-    tx.commit().expect("Failed to commit transaction");
-    trace!("Successfully flushed {} posts", count);
-}
-
-async fn flush_likes(
-    db: &Arc<Mutex<Connection>>,
-    pending_likes: &Arc<Mutex<Vec<(String, String)>>>,
-) {
-    let mut pending = pending_likes.lock().await;
-    if pending.is_empty() {
-        return;
-    }
-
-    let likes_to_insert: Vec<_> = pending.drain(..).collect();
-    let count = likes_to_insert.len();
-    drop(pending);
-
-    let mut db = db.lock().await;
-    let tx = db.transaction().expect("Failed to start transaction");
-
-    {
-        let mut stmt = tx.prepare(
-                "INSERT OR REPLACE INTO likes (post_uri, like_uri) SELECT ?1, ?2 WHERE EXISTS (SELECT 1 FROM posts WHERE uri = ?1)"
-            ).expect("Failed to prepare statement");
-
-        for (post_uri, like_uri) in likes_to_insert {
-            stmt.execute(params![post_uri, like_uri])
-                .expect("Failed to insert like");
-        }
-    }
-
-    tx.commit().expect("Failed to commit transaction");
-    trace!("Successfully flushed {} likes", count);
-}
-
-async fn cleanup_posts(db: &Arc<Mutex<Connection>>, feed: &str, post_limit: usize) {
-    let oldest_timestamp = db
-        .lock()
-        .await
-        .query_row(
-            "SELECT MIN(timestamp) FROM posts WHERE feed = ?1",
-            params![feed],
-            |row| row.get::<_, Option<i64>>(0),
-        )
-        .expect("Failed to get oldest post timestamp");
-
-    let oldest_date = oldest_timestamp.map(|ts| {
-        chrono::DateTime::<chrono::Utc>::from_timestamp(ts, 0)
-            .map(|dt| dt.to_rfc3339())
-            .unwrap_or_else(|| "Invalid timestamp".to_string())
-    });
-
-    let cleaned_posts = db
-        .lock()
-        .await
-        .execute(
-            "DELETE FROM posts
-            WHERE feed = ?1
-              AND uri NOT IN (
-                SELECT uri
-                FROM posts
-                WHERE feed = ?1
-                ORDER BY timestamp DESC
-                LIMIT ?2
-            );",
-            params![feed, post_limit],
-        )
-        .expect("Failed to clean up old posts");
-
-    let remaining_posts = db
-        .lock()
-        .await
-        .query_row(
-            "SELECT COUNT(*) FROM posts WHERE feed = ?1",
-            params![feed],
-            |row| row.get::<_, usize>(0),
-        )
-        .expect("Failed to count remaining posts");
-
-    info!(
-        "Cleaned up {cleaned_posts} posts on {feed}. Oldest post available: {}. {remaining_posts} posts remain.",
-        oldest_date.unwrap_or_else(|| "No posts".to_string())
-    );
 }
 
 fn initialize_db(db: &Connection) {

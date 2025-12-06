@@ -3,13 +3,14 @@ name = "sqlite-feed"
 version = "0.1.0"
 edition = "2024"
 publish = false
+rust-version = "1.90.0"
 
 [features]
 local = []
 
 [dependencies]
 log = "0.4.25"
-skyfeed = { git = "https://github.com/cyypherus/skyfeed.git", rev = "24a3a2913387c6bca775fb1831bab6a8f6597803" }
+skyfeed = { git = "https://github.com/cyypherus/skyfeed.git", rev = "d23838bf643881a253fa4f0b38a99727071be088" }
 # skyfeed = { path = "../.." }
 tokio = { version = "1.43.0", features = ["full", "time"] }
 rusqlite = { version = "0.33.0", features = ["bundled"] }

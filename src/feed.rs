@@ -47,14 +47,11 @@ pub trait FeedHandler {
 /// Panics if unable to bind to the provided address.
 pub async fn start(
     config: Config,
-    feed_handler: impl FeedHandler + Send + 'static,
+    feed_handler: Arc<Mutex<impl FeedHandler + Send + 'static>>,
     address: impl Into<SocketAddr> + Send + 'static,
 ) {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     let address: SocketAddr = address.into();
-    let feed_handler = Arc::new(Mutex::new(feed_handler));
-    let config = config;
-
     let did_config = config.clone();
     let did_json = warp::path(".well-known")
         .and(warp::path("did.json"))
