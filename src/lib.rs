@@ -2,12 +2,11 @@
 
 mod config;
 mod feed;
-mod feed_handler;
 mod firehose;
 mod models;
 mod public_api_test;
 mod utility_models;
 
 pub use config::Config;
-pub use feed::FeedHandler;
+pub use feed::{start, FeedHandler};
 pub use models::*;

@@ -1,26 +1,18 @@
 use log::info;
-use skyfeed::{Feed, FeedHandler, FeedResult, Post, Request, Uri};
+use skyfeed::{Config, FeedHandler, FeedResult, Post, FeedRequest, Uri, start};
 use std::{collections::HashSet, sync::Arc};
 use tokio::sync::Mutex;
 
 #[tokio::main]
 async fn main() {
-    let mut feed = MyFeed {
-        handler: MyFeedHandler {
-            posts: Arc::new(Mutex::new(Vec::new())),
-        },
+    let handler = MyFeedHandler {
+        posts: Arc::new(Mutex::new(Vec::new())),
     };
-    feed.start(vec!["Cats"], ([0, 0, 0, 0], 3030)).await
-}
-
-struct MyFeed {
-    handler: MyFeedHandler,
-}
-
-impl Feed<MyFeedHandler> for MyFeed {
-    fn handler(&mut self) -> MyFeedHandler {
-        self.handler.clone()
-    }
+    let config = Config {
+        publisher_did: "did:web:example.com".to_string(),
+        feed_generator_hostname: "example.com".to_string(),
+    };
+    start(config, handler, ([0, 0, 0, 0], 3030)).await
 }
 
 #[derive(Clone)]
@@ -35,6 +27,10 @@ struct MyPost {
 }
 
 impl FeedHandler for MyFeedHandler {
+    async fn available_feeds(&mut self) -> Vec<String> {
+        vec!["Cats".to_string()]
+    }
+
     async fn insert_post(&mut self, post: Post) {
         println!("📝 POST: {}", post.text);
         if post.text.to_lowercase().contains(" cat ") {
@@ -61,7 +57,7 @@ impl FeedHandler for MyFeedHandler {
             .retain(|post_with_likes| post_with_likes.post.uri != uri);
     }
 
-    async fn like_post(&mut self, like_uri: Uri, liked_post_uri: Uri) {
+    async fn insert_like(&mut self, like_uri: Uri, liked_post_uri: Uri) {
         if let Some(post_with_likes) = self
             .posts
             .lock()
@@ -80,7 +76,7 @@ impl FeedHandler for MyFeedHandler {
         }
     }
 
-    async fn serve_feed(&self, request: Request) -> FeedResult {
+    async fn serve_feed(&self, request: FeedRequest) -> FeedResult {
         info!("Serving {request:?}");
 
         let posts = self.posts.lock().await;

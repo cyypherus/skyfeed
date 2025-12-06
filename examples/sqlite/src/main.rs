@@ -4,7 +4,7 @@
 use log::{error, info, trace};
 use regex::Regex;
 use rusqlite::{Connection, params};
-use skyfeed::{Config, Feed, FeedHandler, FeedResult, Post, Request, Uri};
+use skyfeed::{Config, FeedHandler, FeedRequest, FeedResult, Post, Uri};
 use std::{env, sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 
@@ -24,19 +24,17 @@ async fn main() {
     let fr_feed_regex = env::var("FR_FEED_REGEX").expect("Missing feed regex");
     let pending_posts = Arc::new(Mutex::new(Vec::new()));
     let pending_likes = Arc::new(Mutex::new(Vec::new()));
-    let mut feed = MyFeed {
-        handler: MyFeedHandler {
-            fr_regex: regex::RegexBuilder::new(fr_feed_regex.as_str())
-                .case_insensitive(true)
-                .build()
-                .unwrap(),
-            my_regex: regex::RegexBuilder::new(my_feed_regex.as_str())
-                .build()
-                .unwrap(),
-            db: db.clone(),
-            pending_posts: pending_posts.clone(),
-            pending_likes: pending_likes.clone(),
-        },
+    let handler = MyFeedHandler {
+        fr_regex: regex::RegexBuilder::new(fr_feed_regex.as_str())
+            .case_insensitive(true)
+            .build()
+            .unwrap(),
+        my_regex: regex::RegexBuilder::new(my_feed_regex.as_str())
+            .build()
+            .unwrap(),
+        db: db.clone(),
+        pending_posts: pending_posts.clone(),
+        pending_likes: pending_likes.clone(),
     };
 
     let db_clone = db.clone();
@@ -57,30 +55,17 @@ async fn main() {
     let feed_generator_hostname =
         env::var("FEED_GENERATOR_HOSTNAME").expect("FEED_GENERATOR_HOSTNAME env var not set");
 
+    let config = Config {
+        publisher_did,
+        feed_generator_hostname,
+    };
+
     tokio::join!(
-        feed.start_with_config(
-            vec![FR_FEED, MY_FEED],
-            Config {
-                publisher_did,
-                feed_generator_hostname
-            },
-            // Config::load_env_config(),
-            ([0, 0, 0, 0], 3030)
-        ),
+        skyfeed::start(config, handler, ([0, 0, 0, 0], 3030)),
         flush_task
     )
     .1
     .expect("Starting tasks failed");
-}
-
-struct MyFeed {
-    handler: MyFeedHandler,
-}
-
-impl Feed<MyFeedHandler> for MyFeed {
-    fn handler(&mut self) -> MyFeedHandler {
-        self.handler.clone()
-    }
 }
 
 #[derive(Clone)]
@@ -93,6 +78,10 @@ struct MyFeedHandler {
 }
 
 impl FeedHandler for MyFeedHandler {
+    async fn available_feeds(&mut self) -> Vec<String> {
+        vec![FR_FEED.to_string(), MY_FEED.to_string()]
+    }
+
     async fn insert_post(&mut self, post: Post) {
         let detected_language = whatlang::detect_lang(&post.text);
         let timestamp = post.timestamp.timestamp();
@@ -132,7 +121,7 @@ impl FeedHandler for MyFeedHandler {
             .expect("Failed to delete post");
     }
 
-    async fn like_post(&mut self, like_uri: Uri, liked_post_uri: Uri) {
+    async fn insert_like(&mut self, like_uri: Uri, liked_post_uri: Uri) {
         let mut pending = self.pending_likes.lock().await;
         pending.push((liked_post_uri.0.clone(), like_uri.0.clone()));
     }
@@ -146,7 +135,7 @@ impl FeedHandler for MyFeedHandler {
             .expect("Failed to delete like");
     }
 
-    async fn serve_feed(&self, request: Request) -> FeedResult {
+    async fn serve_feed(&self, request: FeedRequest) -> FeedResult {
         info!("Serving {request:?}");
 
         let (hours_back, post_offset) = request
