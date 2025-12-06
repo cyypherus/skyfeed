@@ -84,7 +84,7 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
 
             let api = did_json.or(describe_feed_generator).or(get_feed_skeleton);
 
-            info!("Serving feed on {}", format!("{:?}", address));
+            info!("Serving feed on {:?}", address);
 
             let routes = api.with(warp::log::custom(|info| {
                 let method = info.method();
@@ -125,7 +125,7 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
                     }
                     match event {
                         FirehoseEvent::Post(post) => {
-                            h.insert_post(post).await;
+                            h.insert_post(*post).await;
                         }
                         FirehoseEvent::DeletePost(uri) => {
                             h.delete_post(uri).await;
@@ -180,7 +180,7 @@ async fn describe_feed_generator(
                     uri: format!(
                         "at://{}/app.bsky.feed.generator/{}",
                         config.publisher_did,
-                        name.as_ref().to_string()
+                        name.as_ref()
                     ),
                 })
             })
@@ -197,7 +197,7 @@ async fn get_feed_skeleton<Handler: FeedHandler>(
         .serve_feed(Request {
             cursor: query.cursor.clone(),
             feed: query.feed.split("/").last().unwrap_or("").to_string(),
-            limit: query.limit,
+            limit: query.limit.map(|l| l.into()),
         })
         .await;
     Ok::<warp::reply::Json, warp::Rejection>(warp::reply::json(&FeedSkeleton {

@@ -1,4 +1,6 @@
-use dotenv::dotenv;
+#![allow(clippy::type_complexity)]
+
+// use dotenv::dotenv;
 use log::{error, info, trace};
 use regex::Regex;
 use rusqlite::{Connection, params};
@@ -11,9 +13,9 @@ const MY_FEED: &str = "cyys-feed";
 
 #[tokio::main]
 async fn main() {
-    dotenv().expect("No .env");
-    let db = Connection::open("feed.db").expect("Failed to open database");
-    // let db = Connection::open("/space/feed.db").expect("Failed to open database");
+    // dotenv().expect("No .env");
+    // let db = Connection::open("feed.db").expect("Failed to open database");
+    let db = Connection::open("/space/feed.db").expect("Failed to open database");
     initialize_db(&db);
 
     let db = Arc::new(Mutex::new(db));
@@ -24,14 +26,6 @@ async fn main() {
     let pending_likes = Arc::new(Mutex::new(Vec::new()));
     let mut feed = MyFeed {
         handler: MyFeedHandler {
-            fr_threshold: env::var("FR_FEED_THRESHOLD")
-                .expect("Missing threshold")
-                .parse::<f32>()
-                .expect("Invalid threshold"),
-            my_threshold: env::var("MY_FEED_THRESHOLD")
-                .expect("Missing threshold")
-                .parse::<f32>()
-                .expect("Invalid threshold"),
             fr_regex: regex::RegexBuilder::new(fr_feed_regex.as_str())
                 .case_insensitive(true)
                 .build()
@@ -55,7 +49,7 @@ async fn main() {
             flush_posts(&db.clone(), &posts_for_flushing).await;
             flush_likes(&db.clone(), &likes_for_flushing).await;
             cleanup_posts(&db_clone, FR_FEED, 10_000).await;
-            cleanup_posts(&db_clone, MY_FEED, 50_000).await;
+            cleanup_posts(&db_clone, MY_FEED, 200_000).await;
         }
     });
 
@@ -91,8 +85,6 @@ impl Feed<MyFeedHandler> for MyFeed {
 
 #[derive(Clone)]
 struct MyFeedHandler {
-    fr_threshold: f32,
-    my_threshold: f32,
     fr_regex: Regex,
     my_regex: Regex,
     db: Arc<Mutex<Connection>>,
@@ -157,64 +149,66 @@ impl FeedHandler for MyFeedHandler {
     async fn serve_feed(&self, request: Request) -> FeedResult {
         info!("Serving {request:?}");
 
-        let start_index = request
+        let (hours_back, post_offset) = request
             .cursor
             .as_deref()
-            .and_then(|c| c.parse::<usize>().ok())
-            .unwrap_or(0);
+            .and_then(|c| {
+                let parts: Vec<&str> = c.split(':').collect();
+                if parts.len() == 2 {
+                    Some((
+                        parts.first()?.parse::<i64>().ok()?,
+                        parts.get(1)?.parse::<usize>().ok()?,
+                    ))
+                } else {
+                    None
+                }
+            })
+            .unwrap_or((0, 0));
 
-        let posts_per_page = 50;
-        let threshold = if request.feed == FR_FEED {
-            self.fr_threshold
-        } else if request.feed == MY_FEED {
-            self.my_threshold
-        } else {
+        let request_limit: usize = request.limit.unwrap_or(100) as usize;
+        if request.feed != FR_FEED && request.feed != MY_FEED {
             error!("Requested a nonexistent feed");
             return FeedResult {
                 cursor: None,
                 feed: Vec::new(),
             };
-        };
+        }
 
         let db = self.db.lock().await;
         let mut stmt = db
             .prepare(
                 "
-                WITH ranked_posts AS (
-                  SELECT
-                    posts.uri,
-                    posts.timestamp,
-                    COUNT(likes.like_uri) AS likes
-                  FROM posts
-                  LEFT JOIN likes ON posts.uri = likes.post_uri
-                  WHERE posts.feed = ?4
-                  GROUP BY posts.uri
-                  HAVING COUNT(likes.like_uri) > 0
-                ),
-                sorted_posts AS (
-                  SELECT
-                    uri,
-                    timestamp,
-                    likes,
-                    PERCENT_RANK() OVER (ORDER BY likes DESC) AS rank
-                  FROM ranked_posts
-                )
-                SELECT uri, likes
-                FROM sorted_posts
-                WHERE rank <= ?1
-                ORDER BY timestamp DESC;
-                LIMIT ?2 OFFSET ?3
-                ",
+                 WITH top_posts AS (
+                   SELECT
+                     posts.uri,
+                     posts.timestamp,
+                     ROW_NUMBER() OVER (ORDER BY COUNT(likes.like_uri) DESC, posts.timestamp DESC) as rn,
+                     COUNT(likes.like_uri) AS likes
+                   FROM posts
+                   LEFT JOIN likes ON posts.uri = likes.post_uri
+                   WHERE posts.feed = ?2 
+                     AND posts.timestamp >= (strftime('%s', 'now') - ((?1 + 1) * 3600))
+                     AND posts.timestamp < (strftime('%s', 'now') - (?1 * 3600))
+                     AND posts.timestamp < (strftime('%s', 'now') - 300)
+                   GROUP BY posts.uri
+                   LIMIT 100
+                 )
+                 SELECT uri
+                 FROM top_posts
+                 WHERE rn > ?3
+                 ORDER BY timestamp DESC
+                 LIMIT ?4
+                 ",
             )
             .expect("Failed to prepare statement");
 
         let post_iter = stmt
             .query_map(
                 params![
-                    threshold,
-                    posts_per_page as i64,
-                    start_index as i64,
-                    request.feed
+                    hours_back,
+                    request.feed,
+                    post_offset as i64,
+                    request_limit as i64
                 ],
                 |row| row.get::<_, String>(0),
             )
@@ -222,11 +216,19 @@ impl FeedHandler for MyFeedHandler {
 
         let posts: Vec<Uri> = post_iter.filter_map(|x| x.ok()).map(Uri).collect();
 
-        let next_cursor = if posts.len() == posts_per_page {
-            Some((start_index + posts_per_page).to_string())
+        info!("Returned {} posts for feed {}", posts.len(), request.feed);
+
+        let next_cursor = if posts.len() == request_limit {
+            let next_offset = post_offset + posts.len();
+            if next_offset < 100 {
+                Some(format!("{}:{}", hours_back, next_offset))
+            } else {
+                Some(format!("{}:0", hours_back + 1))
+            }
         } else {
             None
         };
+
         FeedResult {
             cursor: next_cursor,
             feed: posts,
@@ -299,6 +301,22 @@ async fn flush_likes(
 }
 
 async fn cleanup_posts(db: &Arc<Mutex<Connection>>, feed: &str, post_limit: usize) {
+    let oldest_timestamp = db
+        .lock()
+        .await
+        .query_row(
+            "SELECT MIN(timestamp) FROM posts WHERE feed = ?1",
+            params![feed],
+            |row| row.get::<_, Option<i64>>(0),
+        )
+        .expect("Failed to get oldest post timestamp");
+
+    let oldest_date = oldest_timestamp.map(|ts| {
+        chrono::DateTime::<chrono::Utc>::from_timestamp(ts, 0)
+            .map(|dt| dt.to_rfc3339())
+            .unwrap_or_else(|| "Invalid timestamp".to_string())
+    });
+
     let cleaned_posts = db
         .lock()
         .await
@@ -326,7 +344,10 @@ async fn cleanup_posts(db: &Arc<Mutex<Connection>>, feed: &str, post_limit: usiz
         )
         .expect("Failed to count remaining posts");
 
-    info!("Cleaned up {cleaned_posts} posts on {feed}. {remaining_posts} posts remain.");
+    info!(
+        "Cleaned up {cleaned_posts} posts on {feed}. Oldest post available: {}. {remaining_posts} posts remain.",
+        oldest_date.unwrap_or_else(|| "No posts".to_string())
+    );
 }
 
 fn initialize_db(db: &Connection) {

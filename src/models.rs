@@ -3,7 +3,7 @@ use atrium_api::{
         embed::record_with_media::MainMediaRefs,
         feed::post::{RecordEmbedRefs, RecordLabelsRefs},
     },
-    types::{BlobRef, LimitedNonZeroU8, Object, TypedBlobRef, Union},
+    types::{BlobRef, Object, TypedBlobRef, Union},
 };
 use chrono::{DateTime, Utc};
 use log::trace;
@@ -12,7 +12,7 @@ use log::trace;
 pub struct Request {
     pub cursor: Option<String>,
     pub feed: String,
-    pub limit: Option<LimitedNonZeroU8<100>>,
+    pub limit: Option<u8>,
 }
 
 #[derive(Debug, Clone)]

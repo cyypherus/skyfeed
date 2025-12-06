@@ -1,3 +1,5 @@
+#![allow(clippy::type_complexity)]
+
 mod config;
 mod feed;
 mod feed_handler;

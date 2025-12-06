@@ -2,14 +2,14 @@ use atrium_api::types::Collection;
 use futures::StreamExt;
 use tokio::net::TcpStream;
 use tokio_tungstenite::tungstenite::Message;
-use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
+use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 
 use atrium_api::app::bsky::feed::{self, Like};
 use atrium_api::com::atproto::sync::subscribe_repos::{Commit, NSID};
 use atrium_api::types::CidLink;
 
-use crate::models::{Did, Embed, Label, Post, Uri};
 use crate::Cid;
+use crate::models::{Did, Embed, Label, Post, Uri};
 use chrono::DateTime;
 
 mod frames {
@@ -43,20 +43,20 @@ mod frames {
         type Error = FrameError;
 
         fn try_from(value: Ipld) -> Result<Self, <FrameHeader as TryFrom<Ipld>>::Error> {
-            if let Ipld::Map(map) = value {
-                if let Some(Ipld::Integer(i)) = map.get("op") {
-                    match i {
-                        1 => {
-                            let t = if let Some(Ipld::String(s)) = map.get("t") {
-                                Some(s.clone())
-                            } else {
-                                None
-                            };
-                            return Ok(FrameHeader::Message(t));
-                        }
-                        -1 => return Ok(FrameHeader::Error),
-                        _ => {}
+            if let Ipld::Map(map) = value
+                && let Some(Ipld::Integer(i)) = map.get("op")
+            {
+                match i {
+                    1 => {
+                        let t = if let Some(Ipld::String(s)) = map.get("t") {
+                            Some(s.clone())
+                        } else {
+                            None
+                        };
+                        return Ok(FrameHeader::Message(t));
                     }
+                    -1 => return Ok(FrameHeader::Error),
+                    _ => {}
                 }
             }
             Err(FrameError::InvalidFrameType)
@@ -112,7 +112,7 @@ mod frames {
         use super::*;
 
         fn serialized_data(s: &str) -> Vec<u8> {
-            assert!(s.len() % 2 == 0);
+            assert!(s.len().is_multiple_of(2));
             let b2u = |b: u8| match b {
                 b'0'..=b'9' => b - b'0',
                 b'a'..=b'f' => b - b'a' + 10,
@@ -193,7 +193,7 @@ impl std::fmt::Display for FirehoseError {
 impl std::error::Error for FirehoseError {}
 
 pub enum FirehoseEvent {
-    Post(Post),
+    Post(Box<Post>),
     DeletePost(Uri),
     Like(Uri, Uri),
     DeleteLike(Uri),
@@ -206,7 +206,7 @@ impl FirehoseConnector {
         let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
         let (stream, _) = connect_async(format!("wss://bsky.network/xrpc/{NSID}"))
             .await
-            .map_err(|e| FirehoseError::WebSocket(e))?;
+            .map_err(FirehoseError::WebSocket)?;
         let subscription = RepoSubscription { stream };
 
         let (frame_tx, frame_rx) = flume::unbounded();
@@ -316,7 +316,7 @@ impl FirehoseConnector {
                                     DateTime::parse_from_rfc3339(record.created_at.as_str())
                                         .ok()
                                         .map(|dt| dt.with_timezone(&chrono::Utc))
-                                        .unwrap_or_else(|| chrono::Utc::now());
+                                        .unwrap_or_else(chrono::Utc::now);
 
                                 let cid_str = match serde_json::to_string(&op.cid) {
                                     Ok(s) => s,
@@ -343,7 +343,7 @@ impl FirehoseConnector {
                                         .filter_map(|lang| serde_json::to_string(&lang).ok())
                                         .collect(),
                                 };
-                                let _ = tx.send_async(FirehoseEvent::Post(post)).await;
+                                let _ = tx.send_async(FirehoseEvent::Post(Box::new(post))).await;
                             }
                             Err(_) => {
                                 log::error!("Failed to deserialize post record for {}", rkey);
@@ -405,7 +405,7 @@ impl RepoSubscription {
         match self.stream.next().await {
             Some(Ok(Message::Binary(data))) => {
                 let slice: &[u8] = &data;
-                Some(Frame::try_from(slice).map_err(|e| FirehoseError::Frame(e)))
+                Some(Frame::try_from(slice).map_err(FirehoseError::Frame))
             }
             Some(Ok(_)) | None => None,
             Some(Err(e)) => Some(Err(FirehoseError::WebSocket(e))),
