@@ -7,7 +7,6 @@ use atrium_api::app::bsky::feed::get_feed_skeleton::ParametersData as FeedSkelet
 use atrium_api::types::Object;
 use env_logger::Env;
 use log::{info, warn};
-use std::fmt::Debug;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -32,26 +31,6 @@ pub trait FeedHandler {
     fn serve_feed(&self, request: Request) -> impl Future<Output = FeedResult> + Send;
 }
 
-/// A `Feed` stores a `FeedHandler`, handles feed server endpoints & connects to the Firehose using the `start` methods.
-// pub trait Feed<Handler: FeedHandler + Send + Sync + 'static> {
-//     fn handler(&mut self) -> Handler;
-/// Starts the feed generator server & connects to the firehose.
-///
-/// This method loads the config from a local .env file using `dotenv`. See `Config`
-///
-/// - feed_names: The identifying names of your feeds. This value is used in the feed URL & when identifying which feed to *publish* or *unpublish*. This is a separate value from the display name.
-/// - address: The address to bind the server to
-///
-/// # Panics
-///
-/// Panics if unable to bind to the provided address.
-fn start(
-    feed_handler: impl FeedHandler + Send + 'static,
-    address: impl Into<SocketAddr> + Debug + Clone + Send,
-) -> impl std::future::Future<Output = ()> + Send {
-    start_with_config(feed_handler, Config::load_env_config(), address)
-}
-
 /// Starts the feed generator server & connects to the firehose.
 ///
 /// - feed_names: The identifying names of your feeds. This value is used in the feed URL & when identifying which feed to *publish* or *unpublish*. This is a separate value from the display name.
@@ -61,110 +40,108 @@ fn start(
 /// # Panics
 ///
 /// Panics if unable to bind to the provided address.
-fn start_with_config(
-    feed_handler: impl FeedHandler + Send + 'static,
+pub async fn start(
     config: Config,
-    address: impl Into<SocketAddr> + Debug + Clone + Send,
-) -> impl std::future::Future<Output = ()> + Send {
+    feed_handler: impl FeedHandler + Send + 'static,
+    address: impl Into<SocketAddr> + Send + 'static,
+) {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
-    let address = address.clone();
+    let address: SocketAddr = address.into();
     let feed_handler = Arc::new(Mutex::new(feed_handler));
-    async move {
-        let config = config;
+    let config = config;
 
-        let did_config = config.clone();
-        let did_json = warp::path(".well-known")
-            .and(warp::path("did.json"))
-            .and(warp::get())
-            .and_then(move || did_json(did_config.clone()));
+    let did_config = config.clone();
+    let did_json = warp::path(".well-known")
+        .and(warp::path("did.json"))
+        .and(warp::get())
+        .and_then(move || did_json(did_config.clone()));
 
-        let describe_feed_config = config.clone();
-        let describe_feed_generator = warp::path("xrpc")
-            .and(warp::path("app.bsky.feed.describeFeedGenerator"))
-            .and(warp::get())
-            .and_then({
-                let feed_handler = feed_handler.clone();
-                move || describe_feed_generator(describe_feed_config.clone(), feed_handler.clone())
-            });
+    let describe_feed_config = config.clone();
+    let describe_feed_generator = warp::path("xrpc")
+        .and(warp::path("app.bsky.feed.describeFeedGenerator"))
+        .and(warp::get())
+        .and_then({
+            let feed_handler = feed_handler.clone();
+            move || describe_feed_generator(describe_feed_config.clone(), feed_handler.clone())
+        });
 
-        let get_feed_skeleton = warp::path("xrpc")
-            .and(warp::path("app.bsky.feed.getFeedSkeleton"))
-            .and(warp::get())
-            .and(warp::query::<FeedSkeletonParameters>())
-            .and_then({
-                let feed_handler = feed_handler.clone();
-                move |query: FeedSkeletonParameters| {
-                    get_feed_skeleton(query.into(), feed_handler.clone())
-                }
-            });
-
-        let api = did_json.or(describe_feed_generator).or(get_feed_skeleton);
-
-        info!("Serving feed on {:?}", address);
-
-        let routes = api.with(warp::log::custom(|info| {
-            let method = info.method();
-            let path = info.path();
-            let status = info.status();
-            let elapsed = info.elapsed().as_millis();
-
-            if status.is_success() {
-                info!(
-                    "Method: {}, Path: {}, Status: {}, Elapsed Time: {}ms",
-                    method, path, status, elapsed
-                );
-            } else {
-                log::error!(
-                    "Method: {}, Path: {}, Status: {}, Elapsed Time: {}ms",
-                    method,
-                    path,
-                    status,
-                    elapsed,
-                );
-            }
-        }));
-        let feed_server = warp::serve(routes);
-
-        let (tx, rx): (flume::Sender<FirehoseEvent>, _) = flume::unbounded();
-
-        let feed_handler = feed_handler.clone();
-        let event_handler = tokio::spawn(async move {
-            let mut warning_log_counter = 0usize;
-            while let Ok(event) = rx.recv_async().await {
-                warning_log_counter += 1;
-                let waiting_updates = rx.len();
-                if waiting_updates >= 2000 && warning_log_counter >= 5 {
-                    warning_log_counter = 0;
-                    warn!(
-                        "{waiting_updates} updates are awaiting processing, your feed handler implementation may not be processing updates quickly enough. This will result in continuously increasing memory usage if it continues!"
-                    )
-                }
-                let mut feed_handler = feed_handler.lock().await;
-                match event {
-                    FirehoseEvent::Post(post) => {
-                        feed_handler.insert_post(*post).await;
-                    }
-                    FirehoseEvent::DeletePost(uri) => {
-                        feed_handler.delete_post(uri).await;
-                    }
-                    FirehoseEvent::Like(like_uri, post_uri) => {
-                        feed_handler.insert_like(like_uri, post_uri).await;
-                    }
-                    FirehoseEvent::DeleteLike(uri) => {
-                        feed_handler.delete_like(uri).await;
-                    }
-                }
+    let get_feed_skeleton = warp::path("xrpc")
+        .and(warp::path("app.bsky.feed.getFeedSkeleton"))
+        .and(warp::get())
+        .and(warp::query::<FeedSkeletonParameters>())
+        .and_then({
+            let feed_handler = feed_handler.clone();
+            move |query: FeedSkeletonParameters| {
+                get_feed_skeleton(query.into(), feed_handler.clone())
             }
         });
 
-        let firehose_listener = tokio::spawn(async move {
-            if let Err(e) = FirehoseConnector::run(tx).await {
-                log::error!("Firehose error: {}", e);
-            }
-        });
+    let api = did_json.or(describe_feed_generator).or(get_feed_skeleton);
 
-        let _ = tokio::join!(feed_server.run(address), firehose_listener, event_handler);
-    }
+    info!("Serving feed on {:?}", address);
+
+    let routes = api.with(warp::log::custom(|info| {
+        let method = info.method();
+        let path = info.path();
+        let status = info.status();
+        let elapsed = info.elapsed().as_millis();
+
+        if status.is_success() {
+            info!(
+                "Method: {}, Path: {}, Status: {}, Elapsed Time: {}ms",
+                method, path, status, elapsed
+            );
+        } else {
+            log::error!(
+                "Method: {}, Path: {}, Status: {}, Elapsed Time: {}ms",
+                method,
+                path,
+                status,
+                elapsed,
+            );
+        }
+    }));
+    let feed_server = warp::serve(routes);
+
+    let (tx, rx): (flume::Sender<FirehoseEvent>, _) = flume::unbounded();
+
+    let feed_handler = feed_handler.clone();
+    let event_handler = tokio::spawn(async move {
+        let mut warning_log_counter = 0usize;
+        while let Ok(event) = rx.recv_async().await {
+            warning_log_counter += 1;
+            let waiting_updates = rx.len();
+            if waiting_updates >= 2000 && warning_log_counter >= 5 {
+                warning_log_counter = 0;
+                warn!(
+                    "{waiting_updates} updates are awaiting processing, your feed handler implementation may not be processing updates quickly enough. This will result in continuously increasing memory usage if it continues!"
+                )
+            }
+            let mut feed_handler = feed_handler.lock().await;
+            match event {
+                FirehoseEvent::Post(post) => {
+                    feed_handler.insert_post(*post).await;
+                }
+                FirehoseEvent::DeletePost(uri) => {
+                    feed_handler.delete_post(uri).await;
+                }
+                FirehoseEvent::Like(like_uri, post_uri) => {
+                    feed_handler.insert_like(like_uri, post_uri).await;
+                }
+                FirehoseEvent::DeleteLike(uri) => {
+                    feed_handler.delete_like(uri).await;
+                }
+            }
+        }
+    });
+
+    let firehose_listener = tokio::spawn(async move {
+        if let Err(e) = FirehoseConnector::run(tx).await {
+            log::error!("Firehose error: {}", e);
+        }
+    });
+
+    let _ = tokio::join!(feed_server.run(address), firehose_listener, event_handler);
 }
 
 async fn did_json(config: Config) -> Result<impl warp::Reply, warp::Rejection> {
