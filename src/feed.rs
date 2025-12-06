@@ -14,10 +14,15 @@ use warp::Filter;
 
 use crate::config::Config;
 use crate::firehose::{FirehoseConnector, FirehoseEvent};
-use crate::models::Request;
+use crate::models::FeedRequest;
 use crate::utility_models::{DidDocument, Service};
 use crate::{FeedResult, Post, Uri};
 
+/// A feed handler is responsible for
+/// - Storing and managing firehose input.
+/// - Serving responses to feed requests with `serve_feed`
+///
+/// One feed handler can implement any number of feeds. Feed IDs / names are specified by the `available_feeds` function, & are later referred to in the `FeedRequest::feed` field.
 pub trait FeedHandler {
     fn available_feeds(&mut self) -> impl Future<Output = Vec<String>> + Send;
     fn insert_post(&mut self, post: Post) -> impl Future<Output = ()> + Send;
@@ -28,12 +33,12 @@ pub trait FeedHandler {
         liked_post_uri: Uri,
     ) -> impl std::future::Future<Output = ()> + Send;
     fn delete_like(&mut self, like_uri: Uri) -> impl Future<Output = ()> + Send;
-    fn serve_feed(&self, request: Request) -> impl Future<Output = FeedResult> + Send;
+    fn serve_feed(&self, request: FeedRequest) -> impl Future<Output = FeedResult> + Send;
 }
 
 /// Starts the feed generator server & connects to the firehose.
 ///
-/// - feed_names: The identifying names of your feeds. This value is used in the feed URL & when identifying which feed to *publish* or *unpublish*. This is a separate value from the display name.
+/// - feed_handler: An object which handles firehose input & serve feeds. This object can implement multiple feeds.
 /// - config: Configuration values, see `Config`
 /// - address: The address to bind the server to
 ///
@@ -192,7 +197,7 @@ async fn get_feed_skeleton(
     let skeleton = feed_handler
         .lock()
         .await
-        .serve_feed(Request {
+        .serve_feed(FeedRequest {
             cursor: query.cursor.clone(),
             limit: query.limit.map(|l| l.into()),
             feed: query.feed.split("/").last().unwrap_or("").to_string(),
