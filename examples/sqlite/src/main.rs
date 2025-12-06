@@ -1,6 +1,7 @@
 #![allow(clippy::type_complexity)]
 
 // use dotenv::dotenv;
+use chrono_tz::America::Denver;
 use log::{error, info, trace};
 use regex::Regex;
 use rusqlite::{Connection, params};
@@ -136,23 +137,35 @@ impl MyFeedHandler {
             )
             .expect("Failed to get oldest post timestamp");
 
-        let oldest_date = oldest_timestamp.map(|ts| {
+        let oldest_date = oldest_timestamp.and_then(|ts| {
             chrono::DateTime::<chrono::Utc>::from_timestamp(ts, 0)
-                .map(|dt| dt.to_rfc3339())
-                .unwrap_or_else(|| "Invalid timestamp".to_string())
+                .map(|dt| dt.with_timezone(&Denver).to_rfc3339())
         });
+
+        let cutoff_time = chrono::Utc::now().timestamp() - 5400;
+        let zero_likes_cleaned = db
+            .execute(
+                "DELETE FROM posts
+                 WHERE feed = ?1
+                   AND timestamp < ?2
+                   AND uri NOT IN (
+                     SELECT DISTINCT post_uri FROM likes
+                   );",
+                params![feed, cutoff_time],
+            )
+            .expect("Failed to clean up zero-like posts");
 
         let cleaned_posts = db
             .execute(
                 "DELETE FROM posts
-                WHERE feed = ?1
-                  AND uri NOT IN (
-                    SELECT uri
-                    FROM posts
-                    WHERE feed = ?1
-                    ORDER BY timestamp DESC
-                    LIMIT ?2
-                );",
+                 WHERE feed = ?1
+                   AND uri NOT IN (
+                     SELECT uri
+                     FROM posts
+                     WHERE feed = ?1
+                     ORDER BY timestamp DESC
+                     LIMIT ?2
+                 );",
                 params![feed, post_limit],
             )
             .expect("Failed to clean up old posts");
@@ -166,7 +179,7 @@ impl MyFeedHandler {
             .expect("Failed to count remaining posts");
 
         info!(
-            "Cleaned up {cleaned_posts} posts on {feed}. Oldest post available: {}. {remaining_posts} posts remain.",
+            "Cleaned up {cleaned_posts} posts on {feed} (plus {zero_likes_cleaned} zero-like posts). Oldest post available: {}. {remaining_posts} posts remain.",
             oldest_date.unwrap_or_else(|| "No posts".to_string())
         );
     }
