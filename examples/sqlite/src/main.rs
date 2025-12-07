@@ -49,7 +49,7 @@ async fn main() {
     }));
 
     let handler_flush = handler.clone();
-    let mut flush_interval = tokio::time::interval(Duration::from_secs(1));
+    let mut flush_interval = tokio::time::interval(Duration::from_secs(10));
     let flush_task = tokio::spawn(async move {
         loop {
             flush_interval.tick().await;
@@ -189,24 +189,39 @@ impl MyFeedHandler {
             .expect("Failed to get oldest post timestamp");
 
         let oldest_date = oldest_timestamp.and_then(|ts| {
-            chrono::DateTime::<chrono::Utc>::from_timestamp(ts, 0)
-                .map(|dt| dt.with_timezone(&Denver).to_rfc3339())
+            chrono::DateTime::<chrono::Utc>::from_timestamp(ts, 0).map(|dt| {
+                dt.with_timezone(&Denver)
+                    .format("%b %d, %Y %l:%M %p")
+                    .to_string()
+            })
         });
 
-        // 3600 seconds = 60 minutes. Delete posts older than 60 minutes that have no likes.
-        // This gives liked posts more time to accumulate engagement before cleanup.
-        let cutoff_time = chrono::Utc::now().timestamp() - 3600;
-        let zero_likes_cleaned = db
+        // Gate posts between 1-2 hours old: only keep the top 1000 by likes.
+        // This ensures older posts have proven engagement before being retained.
+        let now = chrono::Utc::now().timestamp();
+        let one_hour_ago = now - 3600;
+        let two_hours_ago = now - 7200;
+
+        let engagement_gated = db
             .execute(
                 "DELETE FROM posts
                  WHERE feed = ?1
+                   AND timestamp >= ?3
                    AND timestamp < ?2
                    AND uri NOT IN (
-                     SELECT DISTINCT post_uri FROM likes
+                     SELECT posts.uri
+                     FROM posts
+                     LEFT JOIN likes ON posts.uri = likes.post_uri
+                     WHERE posts.feed = ?1
+                       AND posts.timestamp >= ?3
+                       AND posts.timestamp < ?2
+                     GROUP BY posts.uri
+                     ORDER BY COUNT(likes.like_uri) DESC
+                     LIMIT 1000
                    );",
-                params![feed, cutoff_time],
+                params![feed, one_hour_ago, two_hours_ago],
             )
-            .expect("Failed to clean up zero-like posts");
+            .expect("Failed to apply engagement gate");
 
         let cleaned_posts = db
             .execute(
@@ -232,7 +247,7 @@ impl MyFeedHandler {
             .expect("Failed to count remaining posts");
 
         info!(
-            "Cleaned up {cleaned_posts} posts on {feed} (plus {zero_likes_cleaned} zero-like posts). Oldest post available: {}. {remaining_posts} posts remain.",
+            "Cleaned up {cleaned_posts} posts on {feed} (engagement gated: {engagement_gated}). Oldest post available: {}. {remaining_posts} posts remain.",
             oldest_date.unwrap_or_else(|| "No posts".to_string())
         );
     }
