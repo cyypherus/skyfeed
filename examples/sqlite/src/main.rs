@@ -65,8 +65,8 @@ async fn main() {
         loop {
             cleanup_interval.tick().await;
             let mut handler = handler_cleanup.lock().await;
-            handler.cleanup_posts(FR_FEED, 10_000).await;
-            handler.cleanup_posts(MY_FEED, 100_000).await;
+            handler.cleanup_posts(FR_FEED, 5_000).await;
+            handler.cleanup_posts(MY_FEED, 80_000).await;
         }
     });
 
@@ -193,7 +193,9 @@ impl MyFeedHandler {
                 .map(|dt| dt.with_timezone(&Denver).to_rfc3339())
         });
 
-        let cutoff_time = chrono::Utc::now().timestamp() - 5400;
+        // 3600 seconds = 60 minutes. Delete posts older than 60 minutes that have no likes.
+        // This gives liked posts more time to accumulate engagement before cleanup.
+        let cutoff_time = chrono::Utc::now().timestamp() - 3600;
         let zero_likes_cleaned = db
             .execute(
                 "DELETE FROM posts

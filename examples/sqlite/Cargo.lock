@@ -2646,7 +2646,7 @@ checksum = "c1e9a774a6c28142ac54bb25d25562e6bcf957493a184f15ad4eebccb23e410a"
 [[package]]
 name = "skyfeed"
 version = "0.6.0"
-source = "git+https://github.com/cyypherus/skyfeed.git?rev=93899a464bc4c3a24a54c2e1e98ddd9ca0503662#93899a464bc4c3a24a54c2e1e98ddd9ca0503662"
+source = "git+https://github.com/cyypherus/skyfeed.git?rev=0ffcfebb9290096915d3d2eb9566c9fc28662bcf#0ffcfebb9290096915d3d2eb9566c9fc28662bcf"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2654,6 +2654,7 @@ dependencies = [
  "atrium-repo",
  "atrium-xrpc-client",
  "chrono",
+ "chrono-tz",
  "clap",
  "dotenv",
  "env_logger",
@@ -2661,6 +2662,7 @@ dependencies = [
  "futures",
  "ipld-core",
  "log",
+ "rayon",
  "regex",
  "reqwest",
  "rs-car",

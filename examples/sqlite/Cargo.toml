@@ -10,7 +10,7 @@ local = []
 
 [dependencies]
 log = "0.4.25"
-skyfeed = { git = "https://github.com/cyypherus/skyfeed.git", rev = "93899a464bc4c3a24a54c2e1e98ddd9ca0503662" }
+skyfeed = { git = "https://github.com/cyypherus/skyfeed.git", rev = "0ffcfebb9290096915d3d2eb9566c9fc28662bcf" }
 # skyfeed = { path = "../.." }
 tokio = { version = "1.43.0", features = ["full", "time"] }
 rusqlite = { version = "0.33.0", features = ["bundled"] }
