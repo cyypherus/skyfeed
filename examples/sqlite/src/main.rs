@@ -1,8 +1,7 @@
-#![allow(clippy::type_complexity)]
-
 // use dotenv::dotenv;
 use chrono_tz::America::Denver;
 use log::{error, info, trace};
+use rayon::prelude::*;
 use regex::Regex;
 use rusqlite::{Connection, params};
 use skyfeed::{Config, FeedHandler, FeedRequest, FeedResult, Post, Uri};
@@ -11,6 +10,21 @@ use tokio::sync::Mutex;
 
 const FR_FEED: &str = "fr";
 const MY_FEED: &str = "cyys-feed";
+
+#[derive(Clone)]
+struct PendingPost {
+    uri: String,
+    text: String,
+    timestamp: i64,
+    langs: Vec<String>,
+    labels: Vec<String>,
+}
+
+#[derive(Clone)]
+struct PendingLike {
+    post_uri: String,
+    like_uri: String,
+}
 
 #[tokio::main]
 async fn main() {
@@ -34,16 +48,25 @@ async fn main() {
         pending_likes: Vec::new(),
     }));
 
-    let handler_clone = handler.clone();
-    let mut flush_interval = tokio::time::interval(Duration::from_secs(10));
+    let handler_flush = handler.clone();
+    let mut flush_interval = tokio::time::interval(Duration::from_secs(1));
     let flush_task = tokio::spawn(async move {
         loop {
             flush_interval.tick().await;
-            let mut handler = handler_clone.lock().await;
+            let mut handler = handler_flush.lock().await;
             handler.flush_posts().await;
             handler.flush_likes().await;
+        }
+    });
+
+    let handler_cleanup = handler.clone();
+    let mut cleanup_interval = tokio::time::interval(Duration::from_secs(30));
+    let cleanup_task = tokio::spawn(async move {
+        loop {
+            cleanup_interval.tick().await;
+            let mut handler = handler_cleanup.lock().await;
             handler.cleanup_posts(FR_FEED, 10_000).await;
-            handler.cleanup_posts(MY_FEED, 200_000).await;
+            handler.cleanup_posts(MY_FEED, 100_000).await;
         }
     });
 
@@ -58,7 +81,8 @@ async fn main() {
 
     tokio::join!(
         skyfeed::start(config, handler, ([0, 0, 0, 0], 3030)),
-        flush_task
+        flush_task,
+        cleanup_task,
     )
     .1
     .expect("Starting tasks failed");
@@ -68,8 +92,8 @@ struct MyFeedHandler {
     fr_regex: Regex,
     my_regex: Regex,
     db: Mutex<Connection>,
-    pending_posts: Vec<(String, String, i64, String)>,
-    pending_likes: Vec<(String, String)>,
+    pending_posts: Vec<PendingPost>,
+    pending_likes: Vec<PendingLike>,
 }
 
 impl MyFeedHandler {
@@ -78,27 +102,54 @@ impl MyFeedHandler {
             return;
         }
 
-        let posts_to_insert: Vec<_> = self.pending_posts.drain(..).collect();
-        let count = posts_to_insert.len();
+        let posts_to_filter: Vec<_> = self.pending_posts.drain(..).collect();
+        let total = posts_to_filter.len();
 
+        let fr_regex = &self.fr_regex;
+        let my_regex = &self.my_regex;
+
+        // Parallelize filtering with regex, it can be a bottleneck
+        let filtered: Vec<(String, String, i64, String)> = posts_to_filter
+            .into_par_iter()
+            .filter_map(|post| {
+                let detected_language = whatlang::detect_lang(&post.text);
+
+                if post.langs.iter().any(|lang| lang.contains("fr"))
+                    && detected_language == Some(whatlang::Lang::Fra)
+                    && !fr_regex.is_match(&post.text)
+                    && post.labels.is_empty()
+                {
+                    Some((post.uri, post.text, post.timestamp, FR_FEED.to_string()))
+                } else if post.langs.iter().any(|lang| lang.contains("en"))
+                    && detected_language == Some(whatlang::Lang::Eng)
+                    && !my_regex.is_match(&post.text)
+                {
+                    Some((post.uri, post.text, post.timestamp, MY_FEED.to_string()))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        let count = filtered.len();
         let mut db = self.db.lock().await;
         let tx = db.transaction().expect("Failed to start transaction");
 
         {
             let mut stmt = tx
-                .prepare(
-                    "INSERT OR REPLACE INTO posts (uri, text, timestamp, feed) VALUES (?1, ?2, ?3, ?4)",
-                )
-                .expect("Failed to prepare statement");
+                  .prepare(
+                      "INSERT OR REPLACE INTO posts (uri, text, timestamp, feed) VALUES (?1, ?2, ?3, ?4)",
+                  )
+                  .expect("Failed to prepare statement");
 
-            for (uri, text, timestamp, feed) in posts_to_insert {
+            for (uri, text, timestamp, feed) in filtered {
                 stmt.execute(params![uri, text, timestamp, feed])
                     .expect("Failed to insert post");
             }
         }
 
         tx.commit().expect("Failed to commit transaction");
-        trace!("Successfully flushed {} posts", count);
+        trace!("Filtered {} posts, inserted {} to db", total, count);
     }
 
     async fn flush_likes(&mut self) {
@@ -114,11 +165,11 @@ impl MyFeedHandler {
 
         {
             let mut stmt = tx.prepare(
-                    "INSERT OR REPLACE INTO likes (post_uri, like_uri) SELECT ?1, ?2 WHERE EXISTS (SELECT 1 FROM posts WHERE uri = ?1)"
-                ).expect("Failed to prepare statement");
+                     "INSERT OR REPLACE INTO likes (post_uri, like_uri) SELECT ?1, ?2 WHERE EXISTS (SELECT 1 FROM posts WHERE uri = ?1)"
+                 ).expect("Failed to prepare statement");
 
-            for (post_uri, like_uri) in likes_to_insert {
-                stmt.execute(params![post_uri, like_uri])
+            for like in likes_to_insert {
+                stmt.execute(params![like.post_uri, like.like_uri])
                     .expect("Failed to insert like");
             }
         }
@@ -191,31 +242,13 @@ impl FeedHandler for MyFeedHandler {
     }
 
     async fn insert_post(&mut self, post: Post) {
-        let detected_language = whatlang::detect_lang(&post.text);
-        let timestamp = post.timestamp.timestamp();
-        let feed_to_insert = if post.langs.iter().any(|lang| lang.contains("fr"))
-            && detected_language == Some(whatlang::Lang::Fra)
-            && !self.fr_regex.is_match(post.text.as_str())
-            && post.labels.is_empty()
-        {
-            Some(FR_FEED)
-        } else if post.langs.iter().any(|lang| lang.contains("en"))
-            && detected_language == Some(whatlang::Lang::Eng)
-            && !self.my_regex.is_match(post.text.as_str())
-        {
-            Some(MY_FEED)
-        } else {
-            None
-        };
-
-        if let Some(feed) = feed_to_insert {
-            self.pending_posts.push((
-                post.uri.0.clone(),
-                post.text.clone(),
-                timestamp,
-                feed.to_string(),
-            ));
-        }
+        self.pending_posts.push(PendingPost {
+            uri: post.uri.0.clone(),
+            text: post.text.clone(),
+            timestamp: post.timestamp.timestamp(),
+            langs: post.langs.clone(),
+            labels: post.labels.iter().map(|l| format!("{:?}", l)).collect(),
+        });
     }
 
     async fn delete_post(&mut self, uri: Uri) {
@@ -228,8 +261,10 @@ impl FeedHandler for MyFeedHandler {
     }
 
     async fn insert_like(&mut self, like_uri: Uri, liked_post_uri: Uri) {
-        self.pending_likes
-            .push((liked_post_uri.0.clone(), like_uri.0.clone()));
+        self.pending_likes.push(PendingLike {
+            post_uri: liked_post_uri.0.clone(),
+            like_uri: like_uri.0.clone(),
+        });
     }
 
     async fn delete_like(&mut self, like_uri: Uri) {
@@ -270,6 +305,9 @@ impl FeedHandler for MyFeedHandler {
         }
 
         let db = self.db.lock().await;
+        // Paginates through top 100 posts every hour
+        // Posts that are <5 minutes old are excluded to give time for moderation
+        // Cursor is in the format "hour:offset" where hour is the number of hours back we will query, and offset is the number of posts from that hour that this client has already seen
         let mut stmt = db
             .prepare(
                 "
@@ -281,7 +319,7 @@ impl FeedHandler for MyFeedHandler {
                      COUNT(likes.like_uri) AS likes
                    FROM posts
                    LEFT JOIN likes ON posts.uri = likes.post_uri
-                   WHERE posts.feed = ?2 
+                   WHERE posts.feed = ?2
                      AND posts.timestamp >= (strftime('%s', 'now') - ((?1 + 1) * 3600))
                      AND posts.timestamp < (strftime('%s', 'now') - (?1 * 3600))
                      AND posts.timestamp < (strftime('%s', 'now') - 300)

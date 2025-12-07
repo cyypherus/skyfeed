@@ -21,6 +21,7 @@ whatlang = "0.16.4"
 metrics = "0.24.1"
 metrics-exporter-prometheus = "0.16.2"
 dotenv = "0.15.0"
+rayon = "1.10"
 
 [profile.release]
 lto = true
