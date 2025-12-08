@@ -43,7 +43,7 @@ async fn main() {
         my_regex: regex::RegexBuilder::new(my_feed_regex.as_str())
             .build()
             .unwrap(),
-        db: Mutex::new(db),
+        db: Arc::new(Mutex::new(db)),
         pending_posts: Vec::new(),
         pending_likes: Vec::new(),
     }));
@@ -66,7 +66,7 @@ async fn main() {
             cleanup_interval.tick().await;
             let mut handler = handler_cleanup.lock().await;
             handler.cleanup_posts(FR_FEED, 5_000).await;
-            handler.cleanup_posts(MY_FEED, 80_000).await;
+            handler.cleanup_posts(MY_FEED, 10_000).await;
         }
     });
 
@@ -91,7 +91,7 @@ async fn main() {
 struct MyFeedHandler {
     fr_regex: Regex,
     my_regex: Regex,
-    db: Mutex<Connection>,
+    db: Arc<Mutex<Connection>>,
     pending_posts: Vec<PendingPost>,
     pending_likes: Vec<PendingLike>,
 }
@@ -196,7 +196,7 @@ impl MyFeedHandler {
             })
         });
 
-        // Gate posts between 1-2 hours old: only keep the top 1000 by likes.
+        // Gate posts between 1-2 hours old: only keep the top 200 by likes.
         // This ensures older posts have proven engagement before being retained.
         let now = chrono::Utc::now().timestamp();
         let one_hour_ago = now - 3600;
@@ -205,20 +205,20 @@ impl MyFeedHandler {
         let engagement_gated = db
             .execute(
                 "DELETE FROM posts
-                 WHERE feed = ?1
-                   AND timestamp >= ?3
-                   AND timestamp < ?2
-                   AND uri NOT IN (
-                     SELECT posts.uri
-                     FROM posts
-                     LEFT JOIN likes ON posts.uri = likes.post_uri
-                     WHERE posts.feed = ?1
-                       AND posts.timestamp >= ?3
-                       AND posts.timestamp < ?2
-                     GROUP BY posts.uri
-                     ORDER BY COUNT(likes.like_uri) DESC
-                     LIMIT 1000
-                   );",
+                  WHERE feed = ?1
+                    AND timestamp >= ?3
+                    AND timestamp < ?2
+                    AND uri NOT IN (
+                      SELECT posts.uri
+                      FROM posts
+                      LEFT JOIN likes ON posts.uri = likes.post_uri
+                      WHERE posts.feed = ?1
+                        AND posts.timestamp >= ?3
+                        AND posts.timestamp < ?2
+                      GROUP BY posts.uri
+                      ORDER BY COUNT(likes.like_uri) DESC
+                      LIMIT 200
+                    );",
                 params![feed, one_hour_ago, two_hours_ago],
             )
             .expect("Failed to apply engagement gate");
@@ -226,17 +226,26 @@ impl MyFeedHandler {
         let cleaned_posts = db
             .execute(
                 "DELETE FROM posts
-                 WHERE feed = ?1
-                   AND uri NOT IN (
-                     SELECT uri
-                     FROM posts
-                     WHERE feed = ?1
-                     ORDER BY timestamp DESC
-                     LIMIT ?2
-                 );",
+                  WHERE feed = ?1
+                    AND uri NOT IN (
+                      SELECT uri
+                      FROM posts
+                      WHERE feed = ?1
+                      ORDER BY timestamp DESC
+                      LIMIT ?2
+                  );",
                 params![feed, post_limit],
             )
             .expect("Failed to clean up old posts");
+
+        // Delete all posts older than 2 days (2 * 24 * 60 * 60 = 172800 seconds)
+        let two_days_ago = now - 172800;
+        let old_posts = db
+            .execute(
+                "DELETE FROM posts WHERE feed = ?1 AND timestamp < ?2",
+                params![feed, two_days_ago],
+            )
+            .expect("Failed to delete old posts");
 
         let remaining_posts = db
             .query_row(
@@ -247,7 +256,7 @@ impl MyFeedHandler {
             .expect("Failed to count remaining posts");
 
         info!(
-            "Cleaned up {cleaned_posts} posts on {feed} (engagement gated: {engagement_gated}). Oldest post available: {}. {remaining_posts} posts remain.",
+            "Cleaned up {cleaned_posts} posts on {feed} (engagement gated: {engagement_gated}, old posts: {old_posts}). Oldest post available: {}. {remaining_posts} posts remain.",
             oldest_date.unwrap_or_else(|| "No posts".to_string())
         );
     }
@@ -269,12 +278,14 @@ impl FeedHandler for MyFeedHandler {
     }
 
     async fn delete_post(&mut self, uri: Uri) {
-        let unpost_sql = "DELETE FROM posts WHERE uri = ?1";
-        self.db
-            .lock()
-            .await
-            .execute(unpost_sql, params![uri.0])
-            .expect("Failed to delete post");
+        let db = Arc::clone(&self.db);
+        tokio::spawn(async move {
+            let unpost_sql = "DELETE FROM posts WHERE uri = ?1";
+            db.lock()
+                .await
+                .execute(unpost_sql, params![uri.0])
+                .expect("Failed to delete post");
+        });
     }
 
     async fn insert_like(&mut self, like_uri: Uri, liked_post_uri: Uri) {
@@ -285,12 +296,14 @@ impl FeedHandler for MyFeedHandler {
     }
 
     async fn delete_like(&mut self, like_uri: Uri) {
-        let unlike_sql = "DELETE FROM likes WHERE like_uri = ?1";
-        self.db
-            .lock()
-            .await
-            .execute(unlike_sql, params![like_uri.0])
-            .expect("Failed to delete like");
+        let db = Arc::clone(&self.db);
+        tokio::spawn(async move {
+            let unlike_sql = "DELETE FROM likes WHERE like_uri = ?1";
+            db.lock()
+                .await
+                .execute(unlike_sql, params![like_uri.0])
+                .expect("Failed to delete like");
+        });
     }
 
     async fn serve_feed(&self, request: FeedRequest) -> FeedResult {
