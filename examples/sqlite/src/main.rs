@@ -1,5 +1,5 @@
 use chrono_tz::America::Denver;
-// use dotenv::dotenv;
+use dotenv::dotenv;
 use log::{error, info, trace};
 use rayon::prelude::*;
 use regex::Regex;
@@ -28,9 +28,9 @@ struct PendingLike {
 
 #[tokio::main]
 async fn main() {
-    // dotenv().expect("No .env");
-    // let db = Connection::open("feed.db").expect("Failed to open database");
-    let db = Connection::open("/space/feed.db").expect("Failed to open database");
+    dotenv().expect("No .env");
+    let db = Connection::open("feed.db").expect("Failed to open database");
+    // let db = Connection::open("/space/feed.db").expect("Failed to open database");
     initialize_db(&db);
 
     let my_feed_regex = env::var("MY_FEED_REGEX").expect("Missing feed regex");

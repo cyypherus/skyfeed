@@ -1475,18 +1475,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "insta"
-version = "1.45.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b76866be74d68b1595eb8060cb9191dca9c021db2316558e52ddc5d55d41b66c"
-dependencies = [
- "console",
- "once_cell",
- "similar",
- "tempfile",
-]
-
-[[package]]
 name = "ipld-core"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2137,14 +2125,15 @@ dependencies = [
 
 [[package]]
 name = "public-api"
-version = "0.43.0"
+version = "0.50.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31529be2a00213a5eeca25ed983569db17036d90de2abe40c55aceaa0915795b"
+checksum = "6abe4c4c758f4c8c2eacaf9a787f8e7daca79600522c992af7df154b0d5bf9f1"
 dependencies = [
  "hashbag",
  "rustdoc-types",
  "serde",
  "serde_json",
+ "snapshot-testing",
  "thiserror 2.0.17",
 ]
 
@@ -2367,11 +2356,12 @@ dependencies = [
 
 [[package]]
 name = "rustdoc-types"
-version = "0.35.0"
+version = "0.56.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf583db9958b3161d7980a56a8ee3c25e1a40708b81259be72584b7e0ea07c95"
+checksum = "27bf787c529efe523ed9eb6dcdbaa5954d34329f08d5c243fce928441826ca90"
 dependencies = [
  "serde",
+ "serde_derive",
 ]
 
 [[package]]
@@ -2682,6 +2672,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbbb5d9659141646ae647b42fe094daf6c6192d1620870b449d9557f748b2daa"
 
 [[package]]
+name = "similar-asserts"
+version = "1.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b5b441962c817e33508847a22bd82f03a30cff43642dc2fae8b050566121eb9a"
+dependencies = [
+ "console",
+ "similar",
+]
+
+[[package]]
 name = "siphasher"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2703,7 +2703,6 @@ dependencies = [
  "env_logger",
  "flume",
  "futures",
- "insta",
  "ipld-core",
  "log",
  "public-api",
@@ -2735,6 +2734,16 @@ name = "smallvec"
 version = "1.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
+
+[[package]]
+name = "snapshot-testing"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bebf2194b9611339d00b28260cf6bd640073c60179ce7dd1e47badef1eb606e7"
+dependencies = [
+ "console",
+ "similar-asserts",
+]
 
 [[package]]
 name = "socket2"

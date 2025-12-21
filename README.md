@@ -205,3 +205,13 @@ To run these, clone this repo & run this command inside the crate directory
 `cargo run --bin publish`
 
 If you'd like to verify your feed server's endpoints _locally_ before you publish, you can also use the [verify](./src/bin/verify.rs) utility.
+
+### Contributing
+
+This repo uses `cargo-public-api` to snapshot test the public API.
+
+If your PR changes the public API, one of the checks will fail by default.
+
+If the changes to the public API were intentional you can update the snapshot by running:
+
+`UPDATE_SNAPSHOTS=yes cargo test --features test-api`
