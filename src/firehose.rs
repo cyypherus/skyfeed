@@ -12,7 +12,7 @@ use futures::StreamExt;
 use std::convert::Infallible;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicI64, Ordering};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::net::TcpStream;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
@@ -220,22 +220,12 @@ impl FirehoseConnector {
         let cursor = Arc::new(AtomicI64::new(0));
         const MAX_ATTEMPTS: u32 = 10;
         const MAX_BACKOFF_SECS: u64 = 30;
+        const RESET_THRESHOLD_SECS: u64 = MAX_BACKOFF_SECS * 10;
 
-        let mut attempt = 0u32;
+        let mut reconnect_attempts = 0u32;
+        let mut last_reconnect = Instant::now();
 
         loop {
-            attempt += 1;
-
-            if attempt > 1 {
-                let backoff_secs = std::cmp::min(2_u64.pow(attempt - 2), MAX_BACKOFF_SECS);
-                log::info!(
-                    "Reconnecting to firehose (attempt {}), waiting {}s",
-                    attempt,
-                    backoff_secs
-                );
-                tokio::time::sleep(Duration::from_secs(backoff_secs)).await;
-            }
-
             let cursor_value = cursor.load(Ordering::Relaxed);
             let url = if cursor_value > 0 {
                 format!("wss://{endpoint}/xrpc/{NSID}?cursor={}", cursor_value)
@@ -246,18 +236,34 @@ impl FirehoseConnector {
             let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
 
             match Self::connect_and_run(&url, tx.clone(), cursor.clone()).await {
-                Ok(()) => {
-                    attempt = 0;
-                }
+                Ok(()) => {}
                 Err(e) => {
+                    // If the last reconnect happened longer than 10x our max backoff, we can consider it irrelevant to our current reconnect process
+                    if last_reconnect.elapsed() > Duration::from_secs(RESET_THRESHOLD_SECS) {
+                        reconnect_attempts = 0;
+                    }
+
+                    reconnect_attempts += 1;
+                    last_reconnect = Instant::now();
                     log::warn!("Firehose connection failed: {}, retrying...", e);
-                    if attempt >= MAX_ATTEMPTS {
+
+                    if reconnect_attempts >= MAX_ATTEMPTS {
                         log::error!(
                             "Max reconnection attempts ({}) reached, giving up",
                             MAX_ATTEMPTS
                         );
                         return Err(e);
                     }
+
+                    // Exponential backoff with cap
+                    let backoff_secs =
+                        std::cmp::min(2_u64.pow(reconnect_attempts - 1), MAX_BACKOFF_SECS);
+                    log::info!(
+                        "Reconnecting to firehose (attempt {}), waiting {}s",
+                        reconnect_attempts,
+                        backoff_secs
+                    );
+                    tokio::time::sleep(Duration::from_secs(backoff_secs)).await;
                 }
             }
         }

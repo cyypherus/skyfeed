@@ -41,7 +41,7 @@ pub trait FeedHandler {
 /// Starts the feed generator server & connects to the firehose.
 ///
 /// - feed_handler: An object which handles firehose input & serve feeds. This object can implement multiple feeds.
-/// - queue_limit: The maximum number of firehose updates to keep in memory at a time. If your handler does not process updates as quickly or more quickly than they are recieved updates will be stored in memory up to this limit, and then dropped if the queue is already at this limit. Updates can come it
+/// - queue_limit: The maximum number of firehose updates to keep in memory at a time. If your handler does not process updates as quickly or more quickly than they are recieved updates will be stored in memory up to this limit, and then dropped if the queue is already at this limit. Currently, a reasonable limit is around 5000 updates. Around 500 firehose updates are received per second normally, but this can reach up to 3000 updates per second during replay after a reconnect.
 /// - config: Configuration values, see `Config`
 /// - address: The address to bind the server to
 ///
