@@ -10,7 +10,13 @@ async fn main() {
         publisher_did: "did:web:example.com".to_string(),
         feed_generator_hostname: "example.com".to_string(),
     };
-    start(config, Arc::new(Mutex::new(handler)), ([0, 0, 0, 0], 3030)).await
+    start(
+        config,
+        5_000,
+        Arc::new(Mutex::new(handler)),
+        ([0, 0, 0, 0], 3030),
+    )
+    .await
 }
 
 #[derive(Clone)]

@@ -11,6 +11,9 @@ use atrium_api::types::CidLink;
 use crate::Cid;
 use crate::models::{Did, Embed, Label, Post, Uri};
 use chrono::DateTime;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 mod frames {
     use ipld_core::ipld::Ipld;
@@ -173,6 +176,32 @@ mod frames {
 
 use frames::Frame;
 
+struct UpdatesCounter {
+    count: Arc<AtomicU64>,
+    last_log: Arc<tokio::sync::Mutex<Instant>>,
+}
+
+impl UpdatesCounter {
+    fn new() -> Self {
+        UpdatesCounter {
+            count: Arc::new(AtomicU64::new(0)),
+            last_log: Arc::new(tokio::sync::Mutex::new(Instant::now())),
+        }
+    }
+
+    async fn increment_and_maybe_log(&self) {
+        self.count.fetch_add(1, Ordering::Relaxed);
+        let mut last_log = self.last_log.lock().await;
+        let elapsed = last_log.elapsed();
+        if elapsed >= Duration::from_secs(1) {
+            let count = self.count.swap(0, Ordering::Relaxed);
+            let ups = count as f64 / elapsed.as_secs_f64();
+            log::trace!("updates/sec: {:.2}", ups);
+            *last_log = Instant::now();
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum FirehoseError {
     Frame(frames::FrameError),
@@ -246,6 +275,7 @@ impl FirehoseConnector {
         frame_rx: flume::Receiver<Result<Frame, FirehoseError>>,
         tx: flume::Sender<FirehoseEvent>,
     ) -> Result<(), FirehoseError> {
+        let counter = UpdatesCounter::new();
         while let Ok(message) = frame_rx.recv_async().await {
             match message {
                 Ok(Frame::Message(Some(t), message)) => {
@@ -257,6 +287,7 @@ impl FirehoseConnector {
                                 if let Err(e) = Self::handle_commit(&commit, &tx).await {
                                     log::error!("Failed to handle commit: {}", e);
                                 }
+                                counter.increment_and_maybe_log().await;
                             }
                             Err(e) => {
                                 log::error!("Failed to deserialize commit: {}", e);

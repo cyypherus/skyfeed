@@ -39,6 +39,7 @@ pub trait FeedHandler {
 /// Starts the feed generator server & connects to the firehose.
 ///
 /// - feed_handler: An object which handles firehose input & serve feeds. This object can implement multiple feeds.
+/// - queue_limit: The maximum number of firehose updates to keep in memory at a time. If your handler does not process updates as quickly or more quickly than they are recieved updates will be stored in memory up to this limit, and then dropped if the queue is already at this limit. Updates can come it
 /// - config: Configuration values, see `Config`
 /// - address: The address to bind the server to
 ///
@@ -47,6 +48,7 @@ pub trait FeedHandler {
 /// Panics if unable to bind to the provided address.
 pub async fn start(
     config: Config,
+    queue_limit: usize,
     feed_handler: Arc<Mutex<impl FeedHandler + Send + 'static>>,
     address: impl Into<SocketAddr> + Send + 'static,
 ) {
@@ -109,15 +111,13 @@ pub async fn start(
 
     let feed_handler = feed_handler.clone();
     let event_handler = tokio::spawn(async move {
-        let mut warning_log_counter = 0usize;
         while let Ok(event) = rx.recv_async().await {
-            warning_log_counter += 1;
             let waiting_updates = rx.len();
-            if waiting_updates >= 5000 && warning_log_counter >= 100 {
-                warning_log_counter = 0;
+            if waiting_updates > queue_limit {
                 warn!(
-                    "{waiting_updates} updates are awaiting processing, your feed handler implementation may not be processing updates quickly enough. This will result in continuously increasing memory usage if it continues!"
-                )
+                    "{waiting_updates} updates are awaiting processing which is above the specified queue_limit. An update will be dropped to stay under the queue limit. Your feed handler may not be processing updates quickly enough."
+                );
+                continue;
             }
             let mut feed_handler = feed_handler.lock().await;
             match event {

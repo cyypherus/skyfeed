@@ -66,7 +66,7 @@ async fn main() {
             cleanup_interval.tick().await;
             let mut handler = handler_cleanup.lock().await;
             handler.cleanup_posts(FR_FEED, 5_000).await;
-            handler.cleanup_posts(MY_FEED, 10_000).await;
+            handler.cleanup_posts(MY_FEED, 60_000).await;
         }
     });
 
@@ -80,7 +80,7 @@ async fn main() {
     };
 
     tokio::join!(
-        skyfeed::start(config, handler, ([0, 0, 0, 0], 3030)),
+        skyfeed::start(config, 5_000, handler, ([0, 0, 0, 0], 3030)),
         flush_task,
         cleanup_task,
     )
@@ -196,11 +196,11 @@ impl MyFeedHandler {
             })
         });
 
-        // Gate posts between 1-2 hours old: only keep the top 200 by likes.
+        // Gate posts between 0.5-1 hours old: only keep the top 100 by likes in that range.
         // This ensures older posts have proven engagement before being retained.
         let now = chrono::Utc::now().timestamp();
+        let half_hour_ago = now - 1800;
         let one_hour_ago = now - 3600;
-        let two_hours_ago = now - 7200;
 
         let engagement_gated = db
             .execute(
@@ -217,9 +217,9 @@ impl MyFeedHandler {
                         AND posts.timestamp < ?2
                       GROUP BY posts.uri
                       ORDER BY COUNT(likes.like_uri) DESC
-                      LIMIT 200
+                      LIMIT 100
                     );",
-                params![feed, one_hour_ago, two_hours_ago],
+                params![feed, half_hour_ago, one_hour_ago],
             )
             .expect("Failed to apply engagement gate");
 
