@@ -5,8 +5,9 @@ mod feed;
 mod firehose;
 mod models;
 mod public_api_test;
+mod update_counter;
 mod utility_models;
 
 pub use config::Config;
-pub use feed::{start, FeedHandler};
+pub use feed::{FeedHandler, start};
 pub use models::*;

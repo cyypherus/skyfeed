@@ -1,19 +1,21 @@
-use atrium_api::types::Collection;
-use futures::StreamExt;
-use tokio::net::TcpStream;
-use tokio_tungstenite::tungstenite::Message;
-use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
-
+use crate::Cid;
+use crate::firehose::frames::Frame;
+use crate::models::{Did, Embed, Label, Post, Uri};
+use crate::update_counter::UpdatesCounter;
 use atrium_api::app::bsky::feed::{self, Like};
 use atrium_api::com::atproto::sync::subscribe_repos::{Commit, NSID};
 use atrium_api::types::CidLink;
-
-use crate::Cid;
-use crate::models::{Did, Embed, Label, Post, Uri};
+use atrium_api::types::Collection;
 use chrono::DateTime;
-use std::sync::atomic::{AtomicU64, Ordering};
+use flume::RecvError;
+use futures::StreamExt;
+use std::convert::Infallible;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::sync::atomic::{AtomicI64, Ordering};
+use std::time::Duration;
+use tokio::net::TcpStream;
+use tokio_tungstenite::tungstenite::Message;
+use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 
 mod frames {
     use ipld_core::ipld::Ipld;
@@ -174,47 +176,27 @@ mod frames {
     }
 }
 
-use frames::Frame;
-
-struct UpdatesCounter {
-    count: Arc<AtomicU64>,
-    last_log: Arc<tokio::sync::Mutex<Instant>>,
-}
-
-impl UpdatesCounter {
-    fn new() -> Self {
-        UpdatesCounter {
-            count: Arc::new(AtomicU64::new(0)),
-            last_log: Arc::new(tokio::sync::Mutex::new(Instant::now())),
-        }
-    }
-
-    async fn increment_and_maybe_log(&self) {
-        self.count.fetch_add(1, Ordering::Relaxed);
-        let mut last_log = self.last_log.lock().await;
-        let elapsed = last_log.elapsed();
-        if elapsed >= Duration::from_secs(1) {
-            let count = self.count.swap(0, Ordering::Relaxed);
-            let ups = count as f64 / elapsed.as_secs_f64();
-            log::trace!("updates/sec: {:.2}", ups);
-            *last_log = Instant::now();
-        }
-    }
-}
-
 #[derive(Debug)]
 pub enum FirehoseError {
-    Frame(frames::FrameError),
+    FrameError(frames::FrameError),
+    ErrorFrame,
     WebSocket(tokio_tungstenite::tungstenite::Error),
     CarStore(String),
+    SendError(String),
+    RecvError(RecvError),
+    JoinError(String),
 }
 
 impl std::fmt::Display for FirehoseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            FirehoseError::Frame(e) => write!(f, "frame error: {}", e),
+            FirehoseError::FrameError(e) => write!(f, "frame error: {}", e),
+            FirehoseError::ErrorFrame => write!(f, "error frame"),
             FirehoseError::WebSocket(e) => write!(f, "websocket error: {}", e),
             FirehoseError::CarStore(msg) => write!(f, "car store error: {}", msg),
+            FirehoseError::SendError(msg) => write!(f, "send error: {}", msg),
+            FirehoseError::RecvError(e) => write!(f, "receive error: {}", e),
+            FirehoseError::JoinError(msg) => write!(f, "join error: {}", msg),
         }
     }
 }
@@ -231,59 +213,123 @@ pub enum FirehoseEvent {
 pub struct FirehoseConnector;
 
 impl FirehoseConnector {
-    pub async fn run(tx: flume::Sender<FirehoseEvent>) -> Result<(), FirehoseError> {
-        let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
-        let (stream, _) = connect_async(format!("wss://bsky.network/xrpc/{NSID}"))
-            .await
-            .map_err(FirehoseError::WebSocket)?;
+    pub async fn run(
+        endpoint: &str,
+        tx: flume::Sender<FirehoseEvent>,
+    ) -> Result<(), FirehoseError> {
+        let cursor = Arc::new(AtomicI64::new(0));
+        const MAX_ATTEMPTS: u32 = 10;
+        const MAX_BACKOFF_SECS: u64 = 30;
+
+        let mut attempt = 0u32;
+
+        loop {
+            attempt += 1;
+
+            if attempt > 1 {
+                let backoff_secs = std::cmp::min(2_u64.pow(attempt - 2), MAX_BACKOFF_SECS);
+                log::info!(
+                    "Reconnecting to firehose (attempt {}), waiting {}s",
+                    attempt,
+                    backoff_secs
+                );
+                tokio::time::sleep(Duration::from_secs(backoff_secs)).await;
+            }
+
+            let cursor_value = cursor.load(Ordering::Relaxed);
+            let url = if cursor_value > 0 {
+                format!("wss://{endpoint}/xrpc/{NSID}?cursor={}", cursor_value)
+            } else {
+                format!("wss://{endpoint}/xrpc/{NSID}")
+            };
+
+            let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
+
+            match Self::connect_and_run(&url, tx.clone(), cursor.clone()).await {
+                Ok(()) => {
+                    attempt = 0;
+                }
+                Err(e) => {
+                    log::warn!("Firehose connection failed: {}, retrying...", e);
+                    if attempt >= MAX_ATTEMPTS {
+                        log::error!(
+                            "Max reconnection attempts ({}) reached, giving up",
+                            MAX_ATTEMPTS
+                        );
+                        return Err(e);
+                    }
+                }
+            }
+        }
+    }
+
+    async fn connect_and_run(
+        url: &str,
+        tx: flume::Sender<FirehoseEvent>,
+        cursor: Arc<AtomicI64>,
+    ) -> Result<(), FirehoseError> {
+        let (stream, _) = connect_async(url).await.map_err(FirehoseError::WebSocket)?;
         let subscription = RepoSubscription { stream };
 
         let (frame_tx, frame_rx) = flume::unbounded();
 
         let receive_task = tokio::spawn(Self::receive_frames(subscription, frame_tx));
-        let parse_task = tokio::spawn(Self::parse_frames(frame_rx, tx));
+        let parse_task = tokio::spawn(Self::parse_frames(frame_rx, tx, cursor));
 
         tokio::select! {
             receive_result = receive_task => {
-                receive_result.map_err(|_| FirehoseError::WebSocket(
-                    tokio_tungstenite::tungstenite::Error::ConnectionClosed
-                ))??;
+                match receive_result
+                    .map_err(|e| FirehoseError::JoinError(e.to_string()))?? {
+                        // Infallible! Cool!
+                    }
             }
             parse_result = parse_task => {
-                parse_result.map_err(|_| FirehoseError::WebSocket(
-                    tokio_tungstenite::tungstenite::Error::ConnectionClosed
-                ))??;
+                match parse_result
+                    .map_err(|e| FirehoseError::JoinError(e.to_string()))?? {
+                        // Also infallible! Also cool!
+                    }
             }
         }
-
-        Ok(())
     }
 
     async fn receive_frames(
         mut subscription: RepoSubscription,
         frame_tx: flume::Sender<Result<Frame, FirehoseError>>,
-    ) -> Result<(), FirehoseError> {
-        while let Some(message) = subscription.next().await {
-            if frame_tx.send_async(message).await.is_err() {
-                break;
+    ) -> Result<Infallible, FirehoseError> {
+        loop {
+            match subscription.next().await {
+                Some(Ok(frame)) => frame_tx
+                    .send_async(Ok(frame))
+                    .await
+                    .map_err(|e| FirehoseError::SendError(e.to_string()))?,
+                Some(Err(e)) => frame_tx
+                    .send_async(Err(e))
+                    .await
+                    .map_err(|e| FirehoseError::SendError(e.to_string()))?,
+                None => (),
             }
         }
-        Ok(())
     }
 
     async fn parse_frames(
         frame_rx: flume::Receiver<Result<Frame, FirehoseError>>,
         tx: flume::Sender<FirehoseEvent>,
-    ) -> Result<(), FirehoseError> {
+        cursor: Arc<AtomicI64>,
+    ) -> Result<Infallible, FirehoseError> {
         let counter = UpdatesCounter::new();
-        while let Ok(message) = frame_rx.recv_async().await {
-            match message {
+        loop {
+            match frame_rx
+                .recv_async()
+                .await
+                .map_err(FirehoseError::RecvError)?
+            {
                 Ok(Frame::Message(Some(t), message)) => {
                     if t.as_str() == "#commit" {
-                        match serde_ipld_dagcbor::from_reader(std::io::Cursor::new(
+                        match serde_ipld_dagcbor::from_reader::<Commit, _>(std::io::Cursor::new(
                             message.body.as_slice(),
                         )) {
                             Ok(commit) => {
+                                cursor.store(commit.seq, Ordering::Relaxed);
                                 if let Err(e) = Self::handle_commit(&commit, &tx).await {
                                     log::error!("Failed to handle commit: {}", e);
                                 }
@@ -296,17 +342,12 @@ impl FirehoseConnector {
                     }
                 }
                 Ok(Frame::Message(None, _msg)) => (),
-                Ok(Frame::Error(e)) => {
-                    log::error!("Received error frame: {e:?}");
-                    break;
-                }
+                Ok(Frame::Error(_)) => return Err(FirehoseError::ErrorFrame),
                 Err(e) => {
-                    log::error!("Error receiving frames {e}");
                     return Err(e);
                 }
             }
         }
-        Ok(())
     }
 
     async fn handle_commit(
@@ -436,7 +477,7 @@ impl RepoSubscription {
         match self.stream.next().await {
             Some(Ok(Message::Binary(data))) => {
                 let slice: &[u8] = &data;
-                Some(Frame::try_from(slice).map_err(FirehoseError::Frame))
+                Some(Frame::try_from(slice).map_err(FirehoseError::FrameError))
             }
             Some(Ok(_)) | None => None,
             Some(Err(e)) => Some(Err(FirehoseError::WebSocket(e))),

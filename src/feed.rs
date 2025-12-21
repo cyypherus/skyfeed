@@ -18,6 +18,8 @@ use crate::models::FeedRequest;
 use crate::utility_models::{DidDocument, Service};
 use crate::{FeedResult, Post, Uri};
 
+const FIREHOSE_ENDPOINT: &str = "bsky.network";
+
 /// A feed handler is responsible for
 /// - Storing and managing firehose input.
 /// - Serving responses to feed requests with `serve_feed`
@@ -138,7 +140,7 @@ pub async fn start(
     });
 
     let firehose_listener = tokio::spawn(async move {
-        if let Err(e) = FirehoseConnector::run(tx).await {
+        if let Err(e) = FirehoseConnector::run(FIREHOSE_ENDPOINT, tx).await {
             log::error!("Firehose error: {}", e);
         }
     });
