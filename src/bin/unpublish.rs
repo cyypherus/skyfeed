@@ -1,6 +1,6 @@
 use anyhow::Result;
 use atrium_api::{
-    agent::atp_agent::{store::MemorySessionStore, AtpAgent},
+    agent::atp_agent::{AtpAgent, store::MemorySessionStore},
     types::string::{Handle, Nsid, RecordKey},
 };
 use clap::Parser;
@@ -64,7 +64,7 @@ async fn main() -> Result<()> {
                 repo: atrium_api::types::string::AtIdentifier::Did(
                     publisher_did.to_owned().did.clone(),
                 ),
-                rkey: RecordKey::new(args.name.to_owned()).expect("Invalid RecordKey"),
+                rkey: record_key,
                 swap_commit: None,
                 swap_record: None,
             }
