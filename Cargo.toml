@@ -38,22 +38,10 @@ path = "examples/sqlite/src/main.rs"
 required-features = ["examples"]
 
 [dependencies]
-<<<<<<< HEAD
 atrium-api = "0.25.6"
 atrium-repo = "0.1.6"
-||||||| a5bf293
-atrium-api = "=0.24.10"
-=======
-atrium-api = "=0.25.2"
->>>>>>> 297cdee61fe34ea6d58bbb4ff0f8000aa2e540a7
 dotenv = "0.15.0"
 env_logger = "0.11.5"
-<<<<<<< HEAD
-||||||| a5bf293
-jetstream-oxide = "0.1.1"
-=======
-jetstream-oxide = "=0.1.2"
->>>>>>> 297cdee61fe34ea6d58bbb4ff0f8000aa2e540a7
 log = "0.4.22"
 serde = "1.0.215"
 serde_json = "1.0.133"
