@@ -51,6 +51,7 @@ async fn main() {
     let handle = args.handle;
     let password = args.app_password;
     let feed_host_name = args.hostname;
+    let record_key = RecordKey::new(args.name.to_owned()).expect("Invalid record key name.");
 
     println!("Logging in...");
 

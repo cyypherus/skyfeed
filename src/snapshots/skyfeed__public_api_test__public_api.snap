@@ -19,6 +19,10 @@ impl core::marker::Sync for skyfeed::Embed
 impl core::marker::Unpin for skyfeed::Embed
 impl core::panic::unwind_safe::RefUnwindSafe for skyfeed::Embed
 impl core::panic::unwind_safe::UnwindSafe for skyfeed::Embed
+impl<P, T> atrium_common::types::throttled::Throttleable<P> for skyfeed::Embed where P: core::default::Default
+pub fn skyfeed::Embed::throttled(self) -> atrium_common::types::throttled::Throttled<T, P>
+impl<T, C> atrium_common::types::cached::Cacheable<C> for skyfeed::Embed
+pub fn skyfeed::Embed::cached(self, cache: C) -> atrium_common::types::cached::Cached<T, C>
 impl<T, U> core::convert::Into<U> for skyfeed::Embed where U: core::convert::From<T>
 pub fn skyfeed::Embed::into(self) -> U
 impl<T, U> core::convert::TryFrom<U> for skyfeed::Embed where U: core::convert::Into<T>
@@ -41,6 +45,13 @@ impl<T> core::clone::CloneToUninit for skyfeed::Embed where T: core::clone::Clon
 pub unsafe fn skyfeed::Embed::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for skyfeed::Embed
 pub fn skyfeed::Embed::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::Embed
+pub type skyfeed::Embed::Init = T
+pub const skyfeed::Embed::ALIGN: usize
+pub unsafe fn skyfeed::Embed::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn skyfeed::Embed::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn skyfeed::Embed::drop(ptr: usize)
+pub unsafe fn skyfeed::Embed::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> icu_provider::any::MaybeSendSync for skyfeed::Embed
 impl<T> tracing::instrument::Instrument for skyfeed::Embed
 impl<T> tracing::instrument::WithSubscriber for skyfeed::Embed
@@ -74,10 +85,16 @@ impl core::marker::Sync for skyfeed::Label
 impl core::marker::Unpin for skyfeed::Label
 impl core::panic::unwind_safe::RefUnwindSafe for skyfeed::Label
 impl core::panic::unwind_safe::UnwindSafe for skyfeed::Label
+impl<P, T> atrium_common::types::throttled::Throttleable<P> for skyfeed::Label where P: core::default::Default
+pub fn skyfeed::Label::throttled(self) -> atrium_common::types::throttled::Throttled<T, P>
 impl<Q, K> equivalent::Equivalent<K> for skyfeed::Label where Q: core::cmp::Eq + ?core::marker::Sized, K: core::borrow::Borrow<Q> + ?core::marker::Sized
 pub fn skyfeed::Label::equivalent(&self, key: &K) -> bool
 impl<Q, K> hashbrown::Equivalent<K> for skyfeed::Label where Q: core::cmp::Eq + ?core::marker::Sized, K: core::borrow::Borrow<Q> + ?core::marker::Sized
+impl<Q, K> hashbrown::Equivalent<K> for skyfeed::Label where Q: core::cmp::Eq + ?core::marker::Sized, K: core::borrow::Borrow<Q> + ?core::marker::Sized
 pub fn skyfeed::Label::equivalent(&self, key: &K) -> bool
+pub fn skyfeed::Label::equivalent(&self, key: &K) -> bool
+impl<T, C> atrium_common::types::cached::Cacheable<C> for skyfeed::Label
+pub fn skyfeed::Label::cached(self, cache: C) -> atrium_common::types::cached::Cached<T, C>
 impl<T, U> core::convert::Into<U> for skyfeed::Label where U: core::convert::From<T>
 pub fn skyfeed::Label::into(self) -> U
 impl<T, U> core::convert::TryFrom<U> for skyfeed::Label where U: core::convert::Into<T>
@@ -100,6 +117,13 @@ impl<T> core::clone::CloneToUninit for skyfeed::Label where T: core::clone::Clon
 pub unsafe fn skyfeed::Label::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for skyfeed::Label
 pub fn skyfeed::Label::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::Label
+pub type skyfeed::Label::Init = T
+pub const skyfeed::Label::ALIGN: usize
+pub unsafe fn skyfeed::Label::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn skyfeed::Label::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn skyfeed::Label::drop(ptr: usize)
+pub unsafe fn skyfeed::Label::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> icu_provider::any::MaybeSendSync for skyfeed::Label
 impl<T> tracing::instrument::Instrument for skyfeed::Label
 impl<T> tracing::instrument::WithSubscriber for skyfeed::Label
@@ -122,6 +146,10 @@ impl core::marker::Sync for skyfeed::MediaEmbed
 impl core::marker::Unpin for skyfeed::MediaEmbed
 impl core::panic::unwind_safe::RefUnwindSafe for skyfeed::MediaEmbed
 impl core::panic::unwind_safe::UnwindSafe for skyfeed::MediaEmbed
+impl<P, T> atrium_common::types::throttled::Throttleable<P> for skyfeed::MediaEmbed where P: core::default::Default
+pub fn skyfeed::MediaEmbed::throttled(self) -> atrium_common::types::throttled::Throttled<T, P>
+impl<T, C> atrium_common::types::cached::Cacheable<C> for skyfeed::MediaEmbed
+pub fn skyfeed::MediaEmbed::cached(self, cache: C) -> atrium_common::types::cached::Cached<T, C>
 impl<T, U> core::convert::Into<U> for skyfeed::MediaEmbed where U: core::convert::From<T>
 pub fn skyfeed::MediaEmbed::into(self) -> U
 impl<T, U> core::convert::TryFrom<U> for skyfeed::MediaEmbed where U: core::convert::Into<T>
@@ -144,6 +172,13 @@ impl<T> core::clone::CloneToUninit for skyfeed::MediaEmbed where T: core::clone:
 pub unsafe fn skyfeed::MediaEmbed::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for skyfeed::MediaEmbed
 pub fn skyfeed::MediaEmbed::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::MediaEmbed
+pub type skyfeed::MediaEmbed::Init = T
+pub const skyfeed::MediaEmbed::ALIGN: usize
+pub unsafe fn skyfeed::MediaEmbed::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn skyfeed::MediaEmbed::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn skyfeed::MediaEmbed::drop(ptr: usize)
+pub unsafe fn skyfeed::MediaEmbed::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> icu_provider::any::MaybeSendSync for skyfeed::MediaEmbed
 impl<T> tracing::instrument::Instrument for skyfeed::MediaEmbed
 impl<T> tracing::instrument::WithSubscriber for skyfeed::MediaEmbed
@@ -163,6 +198,10 @@ impl core::marker::Sync for skyfeed::Cid
 impl core::marker::Unpin for skyfeed::Cid
 impl core::panic::unwind_safe::RefUnwindSafe for skyfeed::Cid
 impl core::panic::unwind_safe::UnwindSafe for skyfeed::Cid
+impl<P, T> atrium_common::types::throttled::Throttleable<P> for skyfeed::Cid where P: core::default::Default
+pub fn skyfeed::Cid::throttled(self) -> atrium_common::types::throttled::Throttled<T, P>
+impl<T, C> atrium_common::types::cached::Cacheable<C> for skyfeed::Cid
+pub fn skyfeed::Cid::cached(self, cache: C) -> atrium_common::types::cached::Cached<T, C>
 impl<T, U> core::convert::Into<U> for skyfeed::Cid where U: core::convert::From<T>
 pub fn skyfeed::Cid::into(self) -> U
 impl<T, U> core::convert::TryFrom<U> for skyfeed::Cid where U: core::convert::Into<T>
@@ -185,6 +224,13 @@ impl<T> core::clone::CloneToUninit for skyfeed::Cid where T: core::clone::Clone
 pub unsafe fn skyfeed::Cid::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for skyfeed::Cid
 pub fn skyfeed::Cid::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::Cid
+pub type skyfeed::Cid::Init = T
+pub const skyfeed::Cid::ALIGN: usize
+pub unsafe fn skyfeed::Cid::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn skyfeed::Cid::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn skyfeed::Cid::drop(ptr: usize)
+pub unsafe fn skyfeed::Cid::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> icu_provider::any::MaybeSendSync for skyfeed::Cid
 impl<T> tracing::instrument::Instrument for skyfeed::Cid
 impl<T> tracing::instrument::WithSubscriber for skyfeed::Cid
@@ -204,6 +250,10 @@ impl core::marker::Sync for skyfeed::Did
 impl core::marker::Unpin for skyfeed::Did
 impl core::panic::unwind_safe::RefUnwindSafe for skyfeed::Did
 impl core::panic::unwind_safe::UnwindSafe for skyfeed::Did
+impl<P, T> atrium_common::types::throttled::Throttleable<P> for skyfeed::Did where P: core::default::Default
+pub fn skyfeed::Did::throttled(self) -> atrium_common::types::throttled::Throttled<T, P>
+impl<T, C> atrium_common::types::cached::Cacheable<C> for skyfeed::Did
+pub fn skyfeed::Did::cached(self, cache: C) -> atrium_common::types::cached::Cached<T, C>
 impl<T, U> core::convert::Into<U> for skyfeed::Did where U: core::convert::From<T>
 pub fn skyfeed::Did::into(self) -> U
 impl<T, U> core::convert::TryFrom<U> for skyfeed::Did where U: core::convert::Into<T>
@@ -226,6 +276,13 @@ impl<T> core::clone::CloneToUninit for skyfeed::Did where T: core::clone::Clone
 pub unsafe fn skyfeed::Did::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for skyfeed::Did
 pub fn skyfeed::Did::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::Did
+pub type skyfeed::Did::Init = T
+pub const skyfeed::Did::ALIGN: usize
+pub unsafe fn skyfeed::Did::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn skyfeed::Did::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn skyfeed::Did::drop(ptr: usize)
+pub unsafe fn skyfeed::Did::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> icu_provider::any::MaybeSendSync for skyfeed::Did
 impl<T> tracing::instrument::Instrument for skyfeed::Did
 impl<T> tracing::instrument::WithSubscriber for skyfeed::Did
@@ -249,6 +306,10 @@ impl core::marker::Sync for skyfeed::ExternalEmbed
 impl core::marker::Unpin for skyfeed::ExternalEmbed
 impl core::panic::unwind_safe::RefUnwindSafe for skyfeed::ExternalEmbed
 impl core::panic::unwind_safe::UnwindSafe for skyfeed::ExternalEmbed
+impl<P, T> atrium_common::types::throttled::Throttleable<P> for skyfeed::ExternalEmbed where P: core::default::Default
+pub fn skyfeed::ExternalEmbed::throttled(self) -> atrium_common::types::throttled::Throttled<T, P>
+impl<T, C> atrium_common::types::cached::Cacheable<C> for skyfeed::ExternalEmbed
+pub fn skyfeed::ExternalEmbed::cached(self, cache: C) -> atrium_common::types::cached::Cached<T, C>
 impl<T, U> core::convert::Into<U> for skyfeed::ExternalEmbed where U: core::convert::From<T>
 pub fn skyfeed::ExternalEmbed::into(self) -> U
 impl<T, U> core::convert::TryFrom<U> for skyfeed::ExternalEmbed where U: core::convert::Into<T>
@@ -271,6 +332,13 @@ impl<T> core::clone::CloneToUninit for skyfeed::ExternalEmbed where T: core::clo
 pub unsafe fn skyfeed::ExternalEmbed::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for skyfeed::ExternalEmbed
 pub fn skyfeed::ExternalEmbed::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::ExternalEmbed
+pub type skyfeed::ExternalEmbed::Init = T
+pub const skyfeed::ExternalEmbed::ALIGN: usize
+pub unsafe fn skyfeed::ExternalEmbed::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn skyfeed::ExternalEmbed::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn skyfeed::ExternalEmbed::drop(ptr: usize)
+pub unsafe fn skyfeed::ExternalEmbed::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> icu_provider::any::MaybeSendSync for skyfeed::ExternalEmbed
 impl<T> tracing::instrument::Instrument for skyfeed::ExternalEmbed
 impl<T> tracing::instrument::WithSubscriber for skyfeed::ExternalEmbed
@@ -292,6 +360,10 @@ impl core::marker::Sync for skyfeed::FeedResult
 impl core::marker::Unpin for skyfeed::FeedResult
 impl core::panic::unwind_safe::RefUnwindSafe for skyfeed::FeedResult
 impl core::panic::unwind_safe::UnwindSafe for skyfeed::FeedResult
+impl<P, T> atrium_common::types::throttled::Throttleable<P> for skyfeed::FeedResult where P: core::default::Default
+pub fn skyfeed::FeedResult::throttled(self) -> atrium_common::types::throttled::Throttled<T, P>
+impl<T, C> atrium_common::types::cached::Cacheable<C> for skyfeed::FeedResult
+pub fn skyfeed::FeedResult::cached(self, cache: C) -> atrium_common::types::cached::Cached<T, C>
 impl<T, U> core::convert::Into<U> for skyfeed::FeedResult where U: core::convert::From<T>
 pub fn skyfeed::FeedResult::into(self) -> U
 impl<T, U> core::convert::TryFrom<U> for skyfeed::FeedResult where U: core::convert::Into<T>
@@ -314,6 +386,13 @@ impl<T> core::clone::CloneToUninit for skyfeed::FeedResult where T: core::clone:
 pub unsafe fn skyfeed::FeedResult::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for skyfeed::FeedResult
 pub fn skyfeed::FeedResult::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::FeedResult
+pub type skyfeed::FeedResult::Init = T
+pub const skyfeed::FeedResult::ALIGN: usize
+pub unsafe fn skyfeed::FeedResult::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn skyfeed::FeedResult::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn skyfeed::FeedResult::drop(ptr: usize)
+pub unsafe fn skyfeed::FeedResult::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> icu_provider::any::MaybeSendSync for skyfeed::FeedResult
 impl<T> tracing::instrument::Instrument for skyfeed::FeedResult
 impl<T> tracing::instrument::WithSubscriber for skyfeed::FeedResult
@@ -336,6 +415,10 @@ impl core::marker::Sync for skyfeed::ImageEmbed
 impl core::marker::Unpin for skyfeed::ImageEmbed
 impl core::panic::unwind_safe::RefUnwindSafe for skyfeed::ImageEmbed
 impl core::panic::unwind_safe::UnwindSafe for skyfeed::ImageEmbed
+impl<P, T> atrium_common::types::throttled::Throttleable<P> for skyfeed::ImageEmbed where P: core::default::Default
+pub fn skyfeed::ImageEmbed::throttled(self) -> atrium_common::types::throttled::Throttled<T, P>
+impl<T, C> atrium_common::types::cached::Cacheable<C> for skyfeed::ImageEmbed
+pub fn skyfeed::ImageEmbed::cached(self, cache: C) -> atrium_common::types::cached::Cached<T, C>
 impl<T, U> core::convert::Into<U> for skyfeed::ImageEmbed where U: core::convert::From<T>
 pub fn skyfeed::ImageEmbed::into(self) -> U
 impl<T, U> core::convert::TryFrom<U> for skyfeed::ImageEmbed where U: core::convert::Into<T>
@@ -358,6 +441,13 @@ impl<T> core::clone::CloneToUninit for skyfeed::ImageEmbed where T: core::clone:
 pub unsafe fn skyfeed::ImageEmbed::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for skyfeed::ImageEmbed
 pub fn skyfeed::ImageEmbed::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::ImageEmbed
+pub type skyfeed::ImageEmbed::Init = T
+pub const skyfeed::ImageEmbed::ALIGN: usize
+pub unsafe fn skyfeed::ImageEmbed::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn skyfeed::ImageEmbed::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn skyfeed::ImageEmbed::drop(ptr: usize)
+pub unsafe fn skyfeed::ImageEmbed::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> icu_provider::any::MaybeSendSync for skyfeed::ImageEmbed
 impl<T> tracing::instrument::Instrument for skyfeed::ImageEmbed
 impl<T> tracing::instrument::WithSubscriber for skyfeed::ImageEmbed
@@ -385,6 +475,10 @@ impl core::marker::Sync for skyfeed::Post
 impl core::marker::Unpin for skyfeed::Post
 impl core::panic::unwind_safe::RefUnwindSafe for skyfeed::Post
 impl core::panic::unwind_safe::UnwindSafe for skyfeed::Post
+impl<P, T> atrium_common::types::throttled::Throttleable<P> for skyfeed::Post where P: core::default::Default
+pub fn skyfeed::Post::throttled(self) -> atrium_common::types::throttled::Throttled<T, P>
+impl<T, C> atrium_common::types::cached::Cacheable<C> for skyfeed::Post
+pub fn skyfeed::Post::cached(self, cache: C) -> atrium_common::types::cached::Cached<T, C>
 impl<T, U> core::convert::Into<U> for skyfeed::Post where U: core::convert::From<T>
 pub fn skyfeed::Post::into(self) -> U
 impl<T, U> core::convert::TryFrom<U> for skyfeed::Post where U: core::convert::Into<T>
@@ -407,6 +501,13 @@ impl<T> core::clone::CloneToUninit for skyfeed::Post where T: core::clone::Clone
 pub unsafe fn skyfeed::Post::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for skyfeed::Post
 pub fn skyfeed::Post::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::Post
+pub type skyfeed::Post::Init = T
+pub const skyfeed::Post::ALIGN: usize
+pub unsafe fn skyfeed::Post::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn skyfeed::Post::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn skyfeed::Post::drop(ptr: usize)
+pub unsafe fn skyfeed::Post::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> icu_provider::any::MaybeSendSync for skyfeed::Post
 impl<T> tracing::instrument::Instrument for skyfeed::Post
 impl<T> tracing::instrument::WithSubscriber for skyfeed::Post
@@ -428,6 +529,10 @@ impl core::marker::Sync for skyfeed::QuoteEmbed
 impl core::marker::Unpin for skyfeed::QuoteEmbed
 impl core::panic::unwind_safe::RefUnwindSafe for skyfeed::QuoteEmbed
 impl core::panic::unwind_safe::UnwindSafe for skyfeed::QuoteEmbed
+impl<P, T> atrium_common::types::throttled::Throttleable<P> for skyfeed::QuoteEmbed where P: core::default::Default
+pub fn skyfeed::QuoteEmbed::throttled(self) -> atrium_common::types::throttled::Throttled<T, P>
+impl<T, C> atrium_common::types::cached::Cacheable<C> for skyfeed::QuoteEmbed
+pub fn skyfeed::QuoteEmbed::cached(self, cache: C) -> atrium_common::types::cached::Cached<T, C>
 impl<T, U> core::convert::Into<U> for skyfeed::QuoteEmbed where U: core::convert::From<T>
 pub fn skyfeed::QuoteEmbed::into(self) -> U
 impl<T, U> core::convert::TryFrom<U> for skyfeed::QuoteEmbed where U: core::convert::Into<T>
@@ -450,6 +555,13 @@ impl<T> core::clone::CloneToUninit for skyfeed::QuoteEmbed where T: core::clone:
 pub unsafe fn skyfeed::QuoteEmbed::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for skyfeed::QuoteEmbed
 pub fn skyfeed::QuoteEmbed::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::QuoteEmbed
+pub type skyfeed::QuoteEmbed::Init = T
+pub const skyfeed::QuoteEmbed::ALIGN: usize
+pub unsafe fn skyfeed::QuoteEmbed::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn skyfeed::QuoteEmbed::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn skyfeed::QuoteEmbed::drop(ptr: usize)
+pub unsafe fn skyfeed::QuoteEmbed::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> icu_provider::any::MaybeSendSync for skyfeed::QuoteEmbed
 impl<T> tracing::instrument::Instrument for skyfeed::QuoteEmbed
 impl<T> tracing::instrument::WithSubscriber for skyfeed::QuoteEmbed
@@ -461,7 +573,7 @@ pub fn skyfeed::QuoteEmbed::vzip(self) -> V
 pub struct skyfeed::Request
 pub skyfeed::Request::cursor: core::option::Option<alloc::string::String>
 pub skyfeed::Request::feed: alloc::string::String
-pub skyfeed::Request::limit: core::option::Option<atrium_api::types::integer::LimitedNonZeroU8<100>>
+pub skyfeed::Request::limit: core::option::Option<u8>
 impl core::clone::Clone for skyfeed::Request
 pub fn skyfeed::Request::clone(&self) -> skyfeed::Request
 impl core::fmt::Debug for skyfeed::Request
@@ -472,6 +584,10 @@ impl core::marker::Sync for skyfeed::Request
 impl core::marker::Unpin for skyfeed::Request
 impl core::panic::unwind_safe::RefUnwindSafe for skyfeed::Request
 impl core::panic::unwind_safe::UnwindSafe for skyfeed::Request
+impl<P, T> atrium_common::types::throttled::Throttleable<P> for skyfeed::Request where P: core::default::Default
+pub fn skyfeed::Request::throttled(self) -> atrium_common::types::throttled::Throttled<T, P>
+impl<T, C> atrium_common::types::cached::Cacheable<C> for skyfeed::Request
+pub fn skyfeed::Request::cached(self, cache: C) -> atrium_common::types::cached::Cached<T, C>
 impl<T, U> core::convert::Into<U> for skyfeed::Request where U: core::convert::From<T>
 pub fn skyfeed::Request::into(self) -> U
 impl<T, U> core::convert::TryFrom<U> for skyfeed::Request where U: core::convert::Into<T>
@@ -494,6 +610,13 @@ impl<T> core::clone::CloneToUninit for skyfeed::Request where T: core::clone::Cl
 pub unsafe fn skyfeed::Request::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for skyfeed::Request
 pub fn skyfeed::Request::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::Request
+pub type skyfeed::Request::Init = T
+pub const skyfeed::Request::ALIGN: usize
+pub unsafe fn skyfeed::Request::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn skyfeed::Request::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn skyfeed::Request::drop(ptr: usize)
+pub unsafe fn skyfeed::Request::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> icu_provider::any::MaybeSendSync for skyfeed::Request
 impl<T> tracing::instrument::Instrument for skyfeed::Request
 impl<T> tracing::instrument::WithSubscriber for skyfeed::Request
@@ -519,10 +642,16 @@ impl core::marker::Sync for skyfeed::Uri
 impl core::marker::Unpin for skyfeed::Uri
 impl core::panic::unwind_safe::RefUnwindSafe for skyfeed::Uri
 impl core::panic::unwind_safe::UnwindSafe for skyfeed::Uri
+impl<P, T> atrium_common::types::throttled::Throttleable<P> for skyfeed::Uri where P: core::default::Default
+pub fn skyfeed::Uri::throttled(self) -> atrium_common::types::throttled::Throttled<T, P>
 impl<Q, K> equivalent::Equivalent<K> for skyfeed::Uri where Q: core::cmp::Eq + ?core::marker::Sized, K: core::borrow::Borrow<Q> + ?core::marker::Sized
 pub fn skyfeed::Uri::equivalent(&self, key: &K) -> bool
 impl<Q, K> hashbrown::Equivalent<K> for skyfeed::Uri where Q: core::cmp::Eq + ?core::marker::Sized, K: core::borrow::Borrow<Q> + ?core::marker::Sized
+impl<Q, K> hashbrown::Equivalent<K> for skyfeed::Uri where Q: core::cmp::Eq + ?core::marker::Sized, K: core::borrow::Borrow<Q> + ?core::marker::Sized
 pub fn skyfeed::Uri::equivalent(&self, key: &K) -> bool
+pub fn skyfeed::Uri::equivalent(&self, key: &K) -> bool
+impl<T, C> atrium_common::types::cached::Cacheable<C> for skyfeed::Uri
+pub fn skyfeed::Uri::cached(self, cache: C) -> atrium_common::types::cached::Cached<T, C>
 impl<T, U> core::convert::Into<U> for skyfeed::Uri where U: core::convert::From<T>
 pub fn skyfeed::Uri::into(self) -> U
 impl<T, U> core::convert::TryFrom<U> for skyfeed::Uri where U: core::convert::Into<T>
@@ -545,6 +674,13 @@ impl<T> core::clone::CloneToUninit for skyfeed::Uri where T: core::clone::Clone
 pub unsafe fn skyfeed::Uri::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for skyfeed::Uri
 pub fn skyfeed::Uri::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::Uri
+pub type skyfeed::Uri::Init = T
+pub const skyfeed::Uri::ALIGN: usize
+pub unsafe fn skyfeed::Uri::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn skyfeed::Uri::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn skyfeed::Uri::drop(ptr: usize)
+pub unsafe fn skyfeed::Uri::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> icu_provider::any::MaybeSendSync for skyfeed::Uri
 impl<T> tracing::instrument::Instrument for skyfeed::Uri
 impl<T> tracing::instrument::WithSubscriber for skyfeed::Uri
@@ -566,6 +702,10 @@ impl core::marker::Sync for skyfeed::VideoEmbed
 impl core::marker::Unpin for skyfeed::VideoEmbed
 impl core::panic::unwind_safe::RefUnwindSafe for skyfeed::VideoEmbed
 impl core::panic::unwind_safe::UnwindSafe for skyfeed::VideoEmbed
+impl<P, T> atrium_common::types::throttled::Throttleable<P> for skyfeed::VideoEmbed where P: core::default::Default
+pub fn skyfeed::VideoEmbed::throttled(self) -> atrium_common::types::throttled::Throttled<T, P>
+impl<T, C> atrium_common::types::cached::Cacheable<C> for skyfeed::VideoEmbed
+pub fn skyfeed::VideoEmbed::cached(self, cache: C) -> atrium_common::types::cached::Cached<T, C>
 impl<T, U> core::convert::Into<U> for skyfeed::VideoEmbed where U: core::convert::From<T>
 pub fn skyfeed::VideoEmbed::into(self) -> U
 impl<T, U> core::convert::TryFrom<U> for skyfeed::VideoEmbed where U: core::convert::Into<T>
@@ -588,6 +728,13 @@ impl<T> core::clone::CloneToUninit for skyfeed::VideoEmbed where T: core::clone:
 pub unsafe fn skyfeed::VideoEmbed::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for skyfeed::VideoEmbed
 pub fn skyfeed::VideoEmbed::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::VideoEmbed
+pub type skyfeed::VideoEmbed::Init = T
+pub const skyfeed::VideoEmbed::ALIGN: usize
+pub unsafe fn skyfeed::VideoEmbed::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn skyfeed::VideoEmbed::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn skyfeed::VideoEmbed::drop(ptr: usize)
+pub unsafe fn skyfeed::VideoEmbed::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> icu_provider::any::MaybeSendSync for skyfeed::VideoEmbed
 impl<T> tracing::instrument::Instrument for skyfeed::VideoEmbed
 impl<T> tracing::instrument::WithSubscriber for skyfeed::VideoEmbed

@@ -29,6 +29,8 @@ async fn main() -> Result<()> {
     let handle = args.handle;
     let password = args.app_password;
 
+    let record_key = RecordKey::new(args.name.to_owned()).expect("Invalid record key name.");
+
     println!("Logging in");
 
     let agent = AtpAgent::new(
