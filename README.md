@@ -61,12 +61,16 @@ See the [sqlite example](./examples/sqlite)
 
 ## Implement the `FeedHandler` Trait
 
-Your feed handler is responsible for storing and managing firehose input. For the sake of simplicity, we'll just use Vec and HashMap to manage posts and likes.
+Your feed handler is responsible for storing and managing firehose input. For the sake of simplicity, we'll just use a Vec to manage posts and likes.
 
 ```rust
+use skyfeed::{Config, FeedHandler, FeedRequest, FeedResult, Post, Uri, start};
+use std::{collections::HashSet, sync::Arc};
+use tokio::sync::Mutex;
+
 #[derive(Clone)]
 struct MyFeedHandler {
-    posts: Arc<Mutex<Vec<MyPost>>>,
+    posts: Vec<MyPost>,
 }
 
 #[derive(Debug, Clone)]
@@ -76,55 +80,44 @@ struct MyPost {
 }
 
 impl FeedHandler for MyFeedHandler {
+    async fn available_feeds(&mut self) -> Vec<String> {
+        vec!["Cats".to_string()]
+    }
+
     async fn insert_post(&mut self, post: Post) {
         if post.text.to_lowercase().contains(" cat ") {
-            info!("Storing {post:?}");
             const MAX_POSTS: usize = 100;
 
-            let mut posts = self.posts.lock().await;
-
-            posts.push(MyPost {
+            self.posts.push(MyPost {
                 post,
                 likes: HashSet::new(),
             });
 
-            if posts.len() > MAX_POSTS {
-                posts.remove(0);
+            if self.posts.len() > MAX_POSTS {
+                self.posts.remove(0);
             }
         }
     }
 
     async fn delete_post(&mut self, uri: Uri) {
         self.posts
-            .lock()
-            .await
             .retain(|post_with_likes| post_with_likes.post.uri != uri);
     }
 
-    async fn like_post(&mut self, like_uri: Uri, liked_post_uri: Uri) {
-        if let Some(post_with_likes) = self
-            .posts
-            .lock()
-            .await
-            .iter_mut()
-            .find(|p| p.post.uri == liked_post_uri)
+    async fn insert_like(&mut self, like_uri: Uri, liked_post_uri: Uri) {
+        if let Some(post_with_likes) = self.posts.iter_mut().find(|p| p.post.uri == liked_post_uri)
         {
             post_with_likes.likes.insert(like_uri);
         }
     }
 
     async fn delete_like(&mut self, like_uri: Uri) {
-        let mut posts = self.posts.lock().await;
-        for post_with_likes in posts.iter_mut() {
+        for post_with_likes in self.posts.iter_mut() {
             post_with_likes.likes.remove(&like_uri);
         }
     }
 
-    async fn serve_feed(&self, request: Request) -> FeedResult {
-        info!("Serving {request:?}");
-
-        let posts = self.posts.lock().await;
-
+    async fn serve_feed(&self, request: FeedRequest) -> FeedResult {
         // Parse the cursor from the request
         let start_index = if let Some(cursor) = &request.cursor {
             cursor.parse::<usize>().unwrap_or(0)
@@ -135,7 +128,7 @@ impl FeedHandler for MyFeedHandler {
         let posts_per_page = 5;
 
         // Sort posts by likes
-        let mut sorted_posts: Vec<_> = posts.iter().collect();
+        let mut sorted_posts: Vec<_> = self.posts.iter().collect();
         sorted_posts.sort_by(|a, b| b.likes.len().cmp(&a.likes.len()));
 
         // Paginate posts
@@ -147,7 +140,7 @@ impl FeedHandler for MyFeedHandler {
             .collect();
 
         // Calculate the next cursor
-        let next_cursor = if start_index + posts_per_page < posts.len() {
+        let next_cursor = if start_index + posts_per_page < self.posts.len() {
             Some((start_index + posts_per_page).to_string())
         } else {
             None
@@ -162,38 +155,27 @@ impl FeedHandler for MyFeedHandler {
         }
     }
 }
-
-```
-
-## Implement the `Feed` trait
-
-We'll need to use `Arc<Mutex<FeedHandler>>` to enable concurrent shared access.
-
-```rust
-struct MyFeed {
-    handler: MyFeedHandler,
-}
-
-impl Feed<MyFeedHandler> for MyFeed {
-    fn handler(&mut self) -> MyFeedHandler {
-        self.handler.clone()
-    }
-}
 ```
 
 ## Start your feed!
 
-Now we can create an instance of our `Feed` and start it on a local address.
+Now we can create an instance of our feed handler and start the server using the `start()` function with a `Config`.
 
 ```rust
 #[tokio::main]
 async fn main() {
-    let mut feed = MyFeed {
-        handler: MyFeedHandler {
-            posts: Arc::new(Mutex::new(Vec::new())),
-        },
+    let handler = MyFeedHandler { posts: Vec::new() };
+    let config = Config {
+        publisher_did: "did:web:example.com".to_string(),
+        feed_generator_hostname: "example.com".to_string(),
     };
-    feed.start("Cats", ([0, 0, 0, 0], 3030)).await
+    start(
+        config,
+        5_000,
+        Arc::new(Mutex::new(handler)),
+        ([0, 0, 0, 0], 3030),
+    )
+    .await
 }
 ```
 
