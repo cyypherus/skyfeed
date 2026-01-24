@@ -1,15 +1,22 @@
 use chrono_tz::America::Denver;
-// use dotenv::dotenv;
 use log::{error, info, trace};
 use rayon::prelude::*;
 use regex::Regex;
 use rusqlite::{Connection, params};
 use skyfeed::{Config, FeedHandler, FeedRequest, FeedResult, Post, Uri};
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 use std::{env, sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 
 const FR_FEED: &str = "fr";
 const MY_FEED: &str = "cyys-feed";
+
+fn hash_uri(uri: &str) -> i64 {
+    let mut hasher = DefaultHasher::new();
+    uri.hash(&mut hasher);
+    hasher.finish() as i64
+}
 
 #[derive(Clone)]
 struct PendingPost {
@@ -28,7 +35,7 @@ struct PendingLike {
 
 #[tokio::main]
 async fn main() {
-    // dotenv().expect("No .env");
+    // dotenv::dotenv().expect("No .env");
     // let db = Connection::open("feed.db").expect("Failed to open database");
     let db = Connection::open("/space/feed.db").expect("Failed to open database");
     initialize_db(&db);
@@ -66,7 +73,7 @@ async fn main() {
             cleanup_interval.tick().await;
             let mut handler = handler_cleanup.lock().await;
             handler.cleanup_posts(FR_FEED, 5_000).await;
-            handler.cleanup_posts(MY_FEED, 60_000).await;
+            handler.cleanup_posts(MY_FEED, 50_000).await;
         }
     });
 
@@ -109,7 +116,7 @@ impl MyFeedHandler {
         let my_regex = &self.my_regex;
 
         // Parallelize filtering with regex, it can be a bottleneck
-        let filtered: Vec<(String, String, i64, String)> = posts_to_filter
+        let filtered: Vec<(i64, String, String, i64, String)> = posts_to_filter
             .into_par_iter()
             .filter_map(|post| {
                 let detected_language = whatlang::detect_lang(&post.text);
@@ -119,12 +126,24 @@ impl MyFeedHandler {
                     && !fr_regex.is_match(&post.text)
                     && post.labels.is_empty()
                 {
-                    Some((post.uri, post.text, post.timestamp, FR_FEED.to_string()))
+                    Some((
+                        hash_uri(&post.uri),
+                        post.uri,
+                        post.text,
+                        post.timestamp,
+                        FR_FEED.to_string(),
+                    ))
                 } else if post.langs.iter().any(|lang| lang.contains("en"))
                     && detected_language == Some(whatlang::Lang::Eng)
                     && !my_regex.is_match(&post.text)
                 {
-                    Some((post.uri, post.text, post.timestamp, MY_FEED.to_string()))
+                    Some((
+                        hash_uri(&post.uri),
+                        post.uri,
+                        post.text,
+                        post.timestamp,
+                        MY_FEED.to_string(),
+                    ))
                 } else {
                     None
                 }
@@ -138,12 +157,12 @@ impl MyFeedHandler {
         {
             let mut stmt = tx
                   .prepare(
-                      "INSERT OR REPLACE INTO posts (uri, text, timestamp, feed) VALUES (?1, ?2, ?3, ?4)",
+                      "INSERT OR REPLACE INTO posts (uri_hash, uri, text, timestamp, feed) VALUES (?1, ?2, ?3, ?4, ?5)",
                   )
                   .expect("Failed to prepare statement");
 
-            for (uri, text, timestamp, feed) in filtered {
-                stmt.execute(params![uri, text, timestamp, feed])
+            for (uri_hash, uri, text, timestamp, feed) in filtered {
+                stmt.execute(params![uri_hash, uri, text, timestamp, feed])
                     .expect("Failed to insert post");
             }
         }
@@ -165,14 +184,21 @@ impl MyFeedHandler {
 
         {
             let mut stmt = tx.prepare(
-                     "INSERT OR REPLACE INTO likes (post_uri, like_uri) SELECT ?1, ?2 WHERE EXISTS (SELECT 1 FROM posts WHERE uri = ?1)"
+                     "INSERT OR REPLACE INTO likes (post_uri_hash, like_uri_hash) SELECT ?1, ?2 WHERE EXISTS (SELECT 1 FROM posts WHERE uri_hash = ?1)"
                  ).expect("Failed to prepare statement");
 
             for like in likes_to_insert {
-                stmt.execute(params![like.post_uri, like.like_uri])
+                let post_hash = hash_uri(&like.post_uri);
+                let like_hash = hash_uri(&like.like_uri);
+                stmt.execute(params![post_hash, like_hash])
                     .expect("Failed to insert like");
             }
         }
+
+        tx.execute(
+            "UPDATE posts SET like_count = (SELECT COUNT(*) FROM likes WHERE likes.post_uri_hash = posts.uri_hash) WHERE uri_hash IN (SELECT DISTINCT post_uri_hash FROM likes)",
+            [],
+        ).expect("Failed to update like counts");
 
         tx.commit().expect("Failed to commit transaction");
         trace!("Successfully flushed {} likes", count);
@@ -209,15 +235,13 @@ impl MyFeedHandler {
                     AND timestamp >= ?3
                     AND timestamp < ?2
                     AND uri NOT IN (
-                      SELECT posts.uri
+                      SELECT uri
                       FROM posts
-                      LEFT JOIN likes ON posts.uri = likes.post_uri
-                      WHERE posts.feed = ?1
-                        AND posts.timestamp >= ?3
-                        AND posts.timestamp < ?2
-                      GROUP BY posts.uri
-                      ORDER BY COUNT(likes.like_uri) DESC
-                      LIMIT 100
+                      WHERE feed = ?1
+                        AND timestamp >= ?3
+                        AND timestamp < ?2
+                      ORDER BY like_count DESC
+                      LIMIT 30
                     );",
                 params![feed, half_hour_ago, one_hour_ago],
             )
@@ -280,10 +304,11 @@ impl FeedHandler for MyFeedHandler {
     async fn delete_post(&mut self, uri: Uri) {
         let db = Arc::clone(&self.db);
         tokio::spawn(async move {
-            let unpost_sql = "DELETE FROM posts WHERE uri = ?1";
+            let uri_hash = hash_uri(&uri.0);
+            let unpost_sql = "DELETE FROM posts WHERE uri_hash = ?1";
             db.lock()
                 .await
-                .execute(unpost_sql, params![uri.0])
+                .execute(unpost_sql, params![uri_hash])
                 .expect("Failed to delete post");
         });
     }
@@ -298,10 +323,11 @@ impl FeedHandler for MyFeedHandler {
     async fn delete_like(&mut self, like_uri: Uri) {
         let db = Arc::clone(&self.db);
         tokio::spawn(async move {
-            let unlike_sql = "DELETE FROM likes WHERE like_uri = ?1";
+            let like_hash = hash_uri(&like_uri.0);
+            let unlike_sql = "DELETE FROM likes WHERE like_uri_hash = ?1";
             db.lock()
                 .await
-                .execute(unlike_sql, params![like_uri.0])
+                .execute(unlike_sql, params![like_hash])
                 .expect("Failed to delete like");
         });
     }
@@ -335,25 +361,19 @@ impl FeedHandler for MyFeedHandler {
         }
 
         let db = self.db.lock().await;
-        // Paginates through top 100 posts every hour
-        // Posts that are <5 minutes old are excluded to give time for moderation
-        // Cursor is in the format "hour:offset" where hour is the number of hours back we will query, and offset is the number of posts from that hour that this client has already seen
         let mut stmt = db
             .prepare(
                 "
                  WITH top_posts AS (
                    SELECT
-                     posts.uri,
-                     posts.timestamp,
-                     ROW_NUMBER() OVER (ORDER BY COUNT(likes.like_uri) DESC, posts.timestamp DESC) as rn,
-                     COUNT(likes.like_uri) AS likes
+                     uri,
+                     timestamp,
+                     ROW_NUMBER() OVER (ORDER BY like_count DESC, timestamp DESC) as rn
                    FROM posts
-                   LEFT JOIN likes ON posts.uri = likes.post_uri
-                   WHERE posts.feed = ?2
-                     AND posts.timestamp >= (strftime('%s', 'now') - ((?1 + 1) * 3600))
-                     AND posts.timestamp < (strftime('%s', 'now') - (?1 * 3600))
-                     AND posts.timestamp < (strftime('%s', 'now') - 300)
-                   GROUP BY posts.uri
+                   WHERE feed = ?2
+                     AND timestamp >= (strftime('%s', 'now') - ((?1 + 1) * 3600))
+                     AND timestamp < (strftime('%s', 'now') - (?1 * 3600))
+                     AND timestamp < (strftime('%s', 'now') - 300)
                    LIMIT 100
                  )
                  SELECT uri
@@ -406,10 +426,12 @@ impl FeedHandler for MyFeedHandler {
 fn initialize_db(db: &Connection) {
     db.execute(
         "CREATE TABLE IF NOT EXISTS posts (
-            uri TEXT PRIMARY KEY,
+            uri_hash INTEGER PRIMARY KEY,
+            uri TEXT NOT NULL UNIQUE,
             text TEXT,
             timestamp INTEGER,
-            feed TEXT
+            feed TEXT,
+            like_count INTEGER DEFAULT 0
         )",
         [],
     )
@@ -417,18 +439,24 @@ fn initialize_db(db: &Connection) {
 
     db.execute(
         "CREATE TABLE IF NOT EXISTS likes (
-            post_uri TEXT,
-            like_uri TEXT,
-            PRIMARY KEY (post_uri, like_uri),
-            FOREIGN KEY (post_uri) REFERENCES posts(uri) ON DELETE CASCADE
+            post_uri_hash INTEGER,
+            like_uri_hash INTEGER,
+            PRIMARY KEY (post_uri_hash, like_uri_hash),
+            FOREIGN KEY (post_uri_hash) REFERENCES posts(uri_hash) ON DELETE CASCADE
         )",
         [],
     )
     .expect("Failed to create likes table");
 
     db.execute(
-        "CREATE INDEX IF NOT EXISTS idx_likes_post_uri ON likes(post_uri)",
+        "CREATE INDEX IF NOT EXISTS idx_likes_post_uri_hash ON likes(post_uri_hash)",
         [],
     )
-    .expect("Failed to create index on likes.post_uri");
+    .expect("Failed to create index on likes.post_uri_hash");
+
+    db.execute(
+        "ALTER TABLE posts ADD COLUMN like_count INTEGER DEFAULT 0",
+        [],
+    )
+    .ok();
 }
