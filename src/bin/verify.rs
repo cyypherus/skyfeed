@@ -87,13 +87,12 @@ async fn main() {
             println!(
                 "Feed Skeleton Response (Page {}):\n{}",
                 page + 1,
-                serde_json::to_string_pretty(&skeleton).expect("Failed to pretty print skeleton JSON")
+                serde_json::to_string_pretty(&skeleton)
+                    .expect("Failed to pretty print skeleton JSON")
             );
 
             // Extract cursor for next iteration
-            cursor = skeleton["cursor"]
-                .as_str()
-                .map(|s| s.to_string());
+            cursor = skeleton["cursor"].as_str().map(|s| s.to_string());
 
             if cursor.is_none() {
                 break;

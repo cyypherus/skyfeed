@@ -185,6 +185,7 @@ pub enum FirehoseError {
     SendError(String),
     RecvError(RecvError),
     JoinError(String),
+    StreamClosed,
 }
 
 impl std::fmt::Display for FirehoseError {
@@ -197,6 +198,7 @@ impl std::fmt::Display for FirehoseError {
             FirehoseError::SendError(msg) => write!(f, "send error: {}", msg),
             FirehoseError::RecvError(e) => write!(f, "receive error: {}", e),
             FirehoseError::JoinError(msg) => write!(f, "join error: {}", msg),
+            FirehoseError::StreamClosed => write!(f, "stream closed"),
         }
     }
 }
@@ -303,16 +305,11 @@ impl FirehoseConnector {
         frame_tx: flume::Sender<Result<Frame, FirehoseError>>,
     ) -> Result<Infallible, FirehoseError> {
         loop {
-            match subscription.next().await {
-                Some(Ok(frame)) => frame_tx
+            if let Some(frame) = subscription.next().await? {
+                frame_tx
                     .send_async(Ok(frame))
                     .await
-                    .map_err(|e| FirehoseError::SendError(e.to_string()))?,
-                Some(Err(e)) => frame_tx
-                    .send_async(Err(e))
-                    .await
-                    .map_err(|e| FirehoseError::SendError(e.to_string()))?,
-                None => (),
+                    .map_err(|e| FirehoseError::SendError(e.to_string()))?;
             }
         }
     }
@@ -479,14 +476,17 @@ struct RepoSubscription {
 }
 
 impl RepoSubscription {
-    async fn next(&mut self) -> Option<Result<Frame, FirehoseError>> {
+    async fn next(&mut self) -> Result<Option<Frame>, FirehoseError> {
         match self.stream.next().await {
             Some(Ok(Message::Binary(data))) => {
                 let slice: &[u8] = &data;
-                Some(Frame::try_from(slice).map_err(FirehoseError::FrameError))
+                Ok(Some(
+                    Frame::try_from(slice).map_err(FirehoseError::FrameError)?,
+                ))
             }
-            Some(Ok(_)) | None => None,
-            Some(Err(e)) => Some(Err(FirehoseError::WebSocket(e))),
+            Some(Ok(_)) => Ok(None),
+            None => Err(FirehoseError::StreamClosed),
+            Some(Err(e)) => Err(FirehoseError::WebSocket(e)),
         }
     }
 }
