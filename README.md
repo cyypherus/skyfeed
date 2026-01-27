@@ -7,7 +7,7 @@
 
 A library for quickly building bluesky feed generators.
 
-Primarily uses, [warp](https://github.com/seanmonstar/warp), [atrium api](https://github.com/sugyan/atrium), and [jetstream-oxide](https://github.com/videah/jetstream-oxide) to greatly simplify the process of building a bluesky feed generator.
+Primarily uses, [warp](https://github.com/seanmonstar/warp), and [atrium api](https://github.com/sugyan/atrium) to greatly simplify the process of building a bluesky feed generator.
 
 # Quick Start
 
