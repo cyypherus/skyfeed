@@ -9,7 +9,7 @@ use chrono::{DateTime, Utc};
 use log::trace;
 
 #[derive(Debug, Clone)]
-pub struct Request {
+pub struct FeedRequest {
     pub cursor: Option<String>,
     pub feed: String,
     pub limit: Option<u8>,

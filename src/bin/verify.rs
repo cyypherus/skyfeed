@@ -57,29 +57,46 @@ async fn main() {
     );
 
     // Extract at-uri and fetch the feed skeleton
-    let at_uri = describe["feeds"][0]["uri"]
-        .as_str()
-        .expect("at-uri not found");
+    for feed in describe["feeds"].as_array().expect("Unexpected object") {
+        let at_uri = feed["uri"].as_str().expect("at-uri not found");
+        let mut cursor: Option<String> = None;
 
-    let skeleton_response = client
-        .get(format!(
-            "{}/xrpc/app.bsky.feed.getFeedSkeleton",
-            args.local_url
-        ))
-        .query(&[("feed", at_uri), ("limit", "20")])
-        .send()
-        .await
-        .expect("Feed skeleton failed");
+        for page in 0..2 {
+            let mut query = vec![("feed", at_uri.to_string()), ("limit", "20".to_string())];
+            if let Some(ref c) = cursor {
+                query.push(("cursor", c.clone()));
+            }
 
-    let skeleton_body = skeleton_response
-        .text()
-        .await
-        .expect("Failed to read skeleton response text");
-    let skeleton: Value =
-        serde_json::from_str(&skeleton_body).expect("Failed to parse skeleton JSON");
+            let skeleton_response = client
+                .get(format!(
+                    "{}/xrpc/app.bsky.feed.getFeedSkeleton",
+                    args.local_url
+                ))
+                .query(&query)
+                .send()
+                .await
+                .expect("Feed skeleton failed");
 
-    println!(
-        "Feed Skeleton Response:\n{}",
-        serde_json::to_string_pretty(&skeleton).expect("Failed to pretty print skeleton JSON")
-    );
+            let skeleton_body = skeleton_response
+                .text()
+                .await
+                .expect("Failed to read skeleton response text");
+            let skeleton: Value =
+                serde_json::from_str(&skeleton_body).expect("Failed to parse skeleton JSON");
+
+            println!(
+                "Feed Skeleton Response (Page {}):\n{}",
+                page + 1,
+                serde_json::to_string_pretty(&skeleton)
+                    .expect("Failed to pretty print skeleton JSON")
+            );
+
+            // Extract cursor for next iteration
+            cursor = skeleton["cursor"].as_str().map(|s| s.to_string());
+
+            if cursor.is_none() {
+                break;
+            }
+        }
+    }
 }

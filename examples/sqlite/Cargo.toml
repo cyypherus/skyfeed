@@ -1,12 +1,27 @@
 [package]
-name = "basic"
+name = "sqlite-feed"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
+publish = false
+rust-version = "1.90.0"
+
+[features]
+local = []
 
 [dependencies]
 log = "0.4.25"
-skyfeed = { path = "../.." }
+skyfeed = { git = "https://github.com/cyypherus/skyfeed.git", rev = "cc0a252f7aaf7f4e46f9252ba9b7c213f0191c93" }
+# skyfeed = { path = "../.." }
 tokio = { version = "1.43.0", features = ["full", "time"] }
 rusqlite = { version = "0.33.0", features = ["bundled"] }
 chrono = "0.4.39"
+chrono-tz = "0.10"
 regex = "1.11.1"
+whatlang = "0.16.4"
+metrics = "0.24.1"
+metrics-exporter-prometheus = "0.16.2"
+dotenv = "0.15.0"
+rayon = "1.10"
+
+[profile.release]
+lto = true

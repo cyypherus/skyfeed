@@ -8,3 +8,4 @@ traces/
 .env
 *.sh
 *.db
+*regex.txt

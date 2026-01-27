@@ -1,7 +1,3 @@
----
-source: src/public_api_test.rs
-expression: public_api
----
 pub mod skyfeed
 pub enum skyfeed::Embed
 pub skyfeed::Embed::External(skyfeed::ExternalEmbed)
@@ -42,7 +38,7 @@ pub fn skyfeed::Embed::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for skyfeed::Embed where T: ?core::marker::Sized
 pub fn skyfeed::Embed::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for skyfeed::Embed where T: core::clone::Clone
-pub unsafe fn skyfeed::Embed::clone_to_uninit(&self, dst: *mut u8)
+pub unsafe fn skyfeed::Embed::clone_to_uninit(&self, dest: *mut u8)
 impl<T> core::convert::From<T> for skyfeed::Embed
 pub fn skyfeed::Embed::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::Embed
@@ -52,12 +48,12 @@ pub unsafe fn skyfeed::Embed::deref<'a>(ptr: usize) -> &'a T
 pub unsafe fn skyfeed::Embed::deref_mut<'a>(ptr: usize) -> &'a mut T
 pub unsafe fn skyfeed::Embed::drop(ptr: usize)
 pub unsafe fn skyfeed::Embed::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
-impl<T> icu_provider::any::MaybeSendSync for skyfeed::Embed
+impl<T> libipld_core::codec::References<libipld_core::raw::RawCodec> for skyfeed::Embed
+pub fn skyfeed::Embed::references<R, E>(_c: libipld_core::raw::RawCodec, _r: &mut R, _set: &mut E) -> core::result::Result<(), anyhow::Error> where R: std::io::Read, E: core::iter::traits::collect::Extend<cid::cid::Cid<64>>
 impl<T> tracing::instrument::Instrument for skyfeed::Embed
 impl<T> tracing::instrument::WithSubscriber for skyfeed::Embed
 impl<T> typenum::type_operators::Same for skyfeed::Embed
 pub type skyfeed::Embed::Output = T
-impl<T> yoke::erased::ErasedDestructor for skyfeed::Embed where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::Embed where V: ppv_lite86::types::MultiLane<T>
 pub fn skyfeed::Embed::vzip(self) -> V
 pub enum skyfeed::Label
@@ -114,7 +110,7 @@ pub fn skyfeed::Label::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for skyfeed::Label where T: ?core::marker::Sized
 pub fn skyfeed::Label::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for skyfeed::Label where T: core::clone::Clone
-pub unsafe fn skyfeed::Label::clone_to_uninit(&self, dst: *mut u8)
+pub unsafe fn skyfeed::Label::clone_to_uninit(&self, dest: *mut u8)
 impl<T> core::convert::From<T> for skyfeed::Label
 pub fn skyfeed::Label::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::Label
@@ -124,12 +120,12 @@ pub unsafe fn skyfeed::Label::deref<'a>(ptr: usize) -> &'a T
 pub unsafe fn skyfeed::Label::deref_mut<'a>(ptr: usize) -> &'a mut T
 pub unsafe fn skyfeed::Label::drop(ptr: usize)
 pub unsafe fn skyfeed::Label::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
-impl<T> icu_provider::any::MaybeSendSync for skyfeed::Label
+impl<T> libipld_core::codec::References<libipld_core::raw::RawCodec> for skyfeed::Label
+pub fn skyfeed::Label::references<R, E>(_c: libipld_core::raw::RawCodec, _r: &mut R, _set: &mut E) -> core::result::Result<(), anyhow::Error> where R: std::io::Read, E: core::iter::traits::collect::Extend<cid::cid::Cid<64>>
 impl<T> tracing::instrument::Instrument for skyfeed::Label
 impl<T> tracing::instrument::WithSubscriber for skyfeed::Label
 impl<T> typenum::type_operators::Same for skyfeed::Label
 pub type skyfeed::Label::Output = T
-impl<T> yoke::erased::ErasedDestructor for skyfeed::Label where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::Label where V: ppv_lite86::types::MultiLane<T>
 pub fn skyfeed::Label::vzip(self) -> V
 pub enum skyfeed::MediaEmbed
@@ -169,7 +165,7 @@ pub fn skyfeed::MediaEmbed::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for skyfeed::MediaEmbed where T: ?core::marker::Sized
 pub fn skyfeed::MediaEmbed::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for skyfeed::MediaEmbed where T: core::clone::Clone
-pub unsafe fn skyfeed::MediaEmbed::clone_to_uninit(&self, dst: *mut u8)
+pub unsafe fn skyfeed::MediaEmbed::clone_to_uninit(&self, dest: *mut u8)
 impl<T> core::convert::From<T> for skyfeed::MediaEmbed
 pub fn skyfeed::MediaEmbed::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::MediaEmbed
@@ -179,12 +175,12 @@ pub unsafe fn skyfeed::MediaEmbed::deref<'a>(ptr: usize) -> &'a T
 pub unsafe fn skyfeed::MediaEmbed::deref_mut<'a>(ptr: usize) -> &'a mut T
 pub unsafe fn skyfeed::MediaEmbed::drop(ptr: usize)
 pub unsafe fn skyfeed::MediaEmbed::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
-impl<T> icu_provider::any::MaybeSendSync for skyfeed::MediaEmbed
+impl<T> libipld_core::codec::References<libipld_core::raw::RawCodec> for skyfeed::MediaEmbed
+pub fn skyfeed::MediaEmbed::references<R, E>(_c: libipld_core::raw::RawCodec, _r: &mut R, _set: &mut E) -> core::result::Result<(), anyhow::Error> where R: std::io::Read, E: core::iter::traits::collect::Extend<cid::cid::Cid<64>>
 impl<T> tracing::instrument::Instrument for skyfeed::MediaEmbed
 impl<T> tracing::instrument::WithSubscriber for skyfeed::MediaEmbed
 impl<T> typenum::type_operators::Same for skyfeed::MediaEmbed
 pub type skyfeed::MediaEmbed::Output = T
-impl<T> yoke::erased::ErasedDestructor for skyfeed::MediaEmbed where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::MediaEmbed where V: ppv_lite86::types::MultiLane<T>
 pub fn skyfeed::MediaEmbed::vzip(self) -> V
 pub struct skyfeed::Cid(pub alloc::string::String)
@@ -221,7 +217,7 @@ pub fn skyfeed::Cid::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for skyfeed::Cid where T: ?core::marker::Sized
 pub fn skyfeed::Cid::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for skyfeed::Cid where T: core::clone::Clone
-pub unsafe fn skyfeed::Cid::clone_to_uninit(&self, dst: *mut u8)
+pub unsafe fn skyfeed::Cid::clone_to_uninit(&self, dest: *mut u8)
 impl<T> core::convert::From<T> for skyfeed::Cid
 pub fn skyfeed::Cid::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::Cid
@@ -231,14 +227,70 @@ pub unsafe fn skyfeed::Cid::deref<'a>(ptr: usize) -> &'a T
 pub unsafe fn skyfeed::Cid::deref_mut<'a>(ptr: usize) -> &'a mut T
 pub unsafe fn skyfeed::Cid::drop(ptr: usize)
 pub unsafe fn skyfeed::Cid::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
-impl<T> icu_provider::any::MaybeSendSync for skyfeed::Cid
+impl<T> libipld_core::codec::References<libipld_core::raw::RawCodec> for skyfeed::Cid
+pub fn skyfeed::Cid::references<R, E>(_c: libipld_core::raw::RawCodec, _r: &mut R, _set: &mut E) -> core::result::Result<(), anyhow::Error> where R: std::io::Read, E: core::iter::traits::collect::Extend<cid::cid::Cid<64>>
 impl<T> tracing::instrument::Instrument for skyfeed::Cid
 impl<T> tracing::instrument::WithSubscriber for skyfeed::Cid
 impl<T> typenum::type_operators::Same for skyfeed::Cid
 pub type skyfeed::Cid::Output = T
-impl<T> yoke::erased::ErasedDestructor for skyfeed::Cid where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::Cid where V: ppv_lite86::types::MultiLane<T>
 pub fn skyfeed::Cid::vzip(self) -> V
+pub struct skyfeed::Config
+pub skyfeed::Config::feed_generator_hostname: alloc::string::String
+pub skyfeed::Config::publisher_did: alloc::string::String
+impl skyfeed::Config
+pub fn skyfeed::Config::load_env_config() -> Self
+impl core::clone::Clone for skyfeed::Config
+pub fn skyfeed::Config::clone(&self) -> skyfeed::Config
+impl core::fmt::Debug for skyfeed::Config
+pub fn skyfeed::Config::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for skyfeed::Config
+impl core::marker::Send for skyfeed::Config
+impl core::marker::Sync for skyfeed::Config
+impl core::marker::Unpin for skyfeed::Config
+impl core::panic::unwind_safe::RefUnwindSafe for skyfeed::Config
+impl core::panic::unwind_safe::UnwindSafe for skyfeed::Config
+impl<P, T> atrium_common::types::throttled::Throttleable<P> for skyfeed::Config where P: core::default::Default
+pub fn skyfeed::Config::throttled(self) -> atrium_common::types::throttled::Throttled<T, P>
+impl<T, C> atrium_common::types::cached::Cacheable<C> for skyfeed::Config
+pub fn skyfeed::Config::cached(self, cache: C) -> atrium_common::types::cached::Cached<T, C>
+impl<T, U> core::convert::Into<U> for skyfeed::Config where U: core::convert::From<T>
+pub fn skyfeed::Config::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for skyfeed::Config where U: core::convert::Into<T>
+pub type skyfeed::Config::Error = core::convert::Infallible
+pub fn skyfeed::Config::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for skyfeed::Config where U: core::convert::TryFrom<T>
+pub type skyfeed::Config::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn skyfeed::Config::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for skyfeed::Config where T: core::clone::Clone
+pub type skyfeed::Config::Owned = T
+pub fn skyfeed::Config::clone_into(&self, target: &mut T)
+pub fn skyfeed::Config::to_owned(&self) -> T
+impl<T> core::any::Any for skyfeed::Config where T: 'static + ?core::marker::Sized
+pub fn skyfeed::Config::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for skyfeed::Config where T: ?core::marker::Sized
+pub fn skyfeed::Config::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for skyfeed::Config where T: ?core::marker::Sized
+pub fn skyfeed::Config::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for skyfeed::Config where T: core::clone::Clone
+pub unsafe fn skyfeed::Config::clone_to_uninit(&self, dest: *mut u8)
+impl<T> core::convert::From<T> for skyfeed::Config
+pub fn skyfeed::Config::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::Config
+pub type skyfeed::Config::Init = T
+pub const skyfeed::Config::ALIGN: usize
+pub unsafe fn skyfeed::Config::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn skyfeed::Config::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn skyfeed::Config::drop(ptr: usize)
+pub unsafe fn skyfeed::Config::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
+impl<T> libipld_core::codec::References<libipld_core::raw::RawCodec> for skyfeed::Config
+pub fn skyfeed::Config::references<R, E>(_c: libipld_core::raw::RawCodec, _r: &mut R, _set: &mut E) -> core::result::Result<(), anyhow::Error> where R: std::io::Read, E: core::iter::traits::collect::Extend<cid::cid::Cid<64>>
+impl<T> tracing::instrument::Instrument for skyfeed::Config
+impl<T> tracing::instrument::WithSubscriber for skyfeed::Config
+impl<T> typenum::type_operators::Same for skyfeed::Config
+pub type skyfeed::Config::Output = T
+impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::Config where V: ppv_lite86::types::MultiLane<T>
+pub fn skyfeed::Config::vzip(self) -> V
 pub struct skyfeed::Did(pub alloc::string::String)
 impl core::clone::Clone for skyfeed::Did
 pub fn skyfeed::Did::clone(&self) -> skyfeed::Did
@@ -273,7 +325,7 @@ pub fn skyfeed::Did::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for skyfeed::Did where T: ?core::marker::Sized
 pub fn skyfeed::Did::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for skyfeed::Did where T: core::clone::Clone
-pub unsafe fn skyfeed::Did::clone_to_uninit(&self, dst: *mut u8)
+pub unsafe fn skyfeed::Did::clone_to_uninit(&self, dest: *mut u8)
 impl<T> core::convert::From<T> for skyfeed::Did
 pub fn skyfeed::Did::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::Did
@@ -283,12 +335,12 @@ pub unsafe fn skyfeed::Did::deref<'a>(ptr: usize) -> &'a T
 pub unsafe fn skyfeed::Did::deref_mut<'a>(ptr: usize) -> &'a mut T
 pub unsafe fn skyfeed::Did::drop(ptr: usize)
 pub unsafe fn skyfeed::Did::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
-impl<T> icu_provider::any::MaybeSendSync for skyfeed::Did
+impl<T> libipld_core::codec::References<libipld_core::raw::RawCodec> for skyfeed::Did
+pub fn skyfeed::Did::references<R, E>(_c: libipld_core::raw::RawCodec, _r: &mut R, _set: &mut E) -> core::result::Result<(), anyhow::Error> where R: std::io::Read, E: core::iter::traits::collect::Extend<cid::cid::Cid<64>>
 impl<T> tracing::instrument::Instrument for skyfeed::Did
 impl<T> tracing::instrument::WithSubscriber for skyfeed::Did
 impl<T> typenum::type_operators::Same for skyfeed::Did
 pub type skyfeed::Did::Output = T
-impl<T> yoke::erased::ErasedDestructor for skyfeed::Did where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::Did where V: ppv_lite86::types::MultiLane<T>
 pub fn skyfeed::Did::vzip(self) -> V
 pub struct skyfeed::ExternalEmbed
@@ -329,7 +381,7 @@ pub fn skyfeed::ExternalEmbed::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for skyfeed::ExternalEmbed where T: ?core::marker::Sized
 pub fn skyfeed::ExternalEmbed::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for skyfeed::ExternalEmbed where T: core::clone::Clone
-pub unsafe fn skyfeed::ExternalEmbed::clone_to_uninit(&self, dst: *mut u8)
+pub unsafe fn skyfeed::ExternalEmbed::clone_to_uninit(&self, dest: *mut u8)
 impl<T> core::convert::From<T> for skyfeed::ExternalEmbed
 pub fn skyfeed::ExternalEmbed::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::ExternalEmbed
@@ -339,14 +391,69 @@ pub unsafe fn skyfeed::ExternalEmbed::deref<'a>(ptr: usize) -> &'a T
 pub unsafe fn skyfeed::ExternalEmbed::deref_mut<'a>(ptr: usize) -> &'a mut T
 pub unsafe fn skyfeed::ExternalEmbed::drop(ptr: usize)
 pub unsafe fn skyfeed::ExternalEmbed::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
-impl<T> icu_provider::any::MaybeSendSync for skyfeed::ExternalEmbed
+impl<T> libipld_core::codec::References<libipld_core::raw::RawCodec> for skyfeed::ExternalEmbed
+pub fn skyfeed::ExternalEmbed::references<R, E>(_c: libipld_core::raw::RawCodec, _r: &mut R, _set: &mut E) -> core::result::Result<(), anyhow::Error> where R: std::io::Read, E: core::iter::traits::collect::Extend<cid::cid::Cid<64>>
 impl<T> tracing::instrument::Instrument for skyfeed::ExternalEmbed
 impl<T> tracing::instrument::WithSubscriber for skyfeed::ExternalEmbed
 impl<T> typenum::type_operators::Same for skyfeed::ExternalEmbed
 pub type skyfeed::ExternalEmbed::Output = T
-impl<T> yoke::erased::ErasedDestructor for skyfeed::ExternalEmbed where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::ExternalEmbed where V: ppv_lite86::types::MultiLane<T>
 pub fn skyfeed::ExternalEmbed::vzip(self) -> V
+pub struct skyfeed::FeedRequest
+pub skyfeed::FeedRequest::cursor: core::option::Option<alloc::string::String>
+pub skyfeed::FeedRequest::feed: alloc::string::String
+pub skyfeed::FeedRequest::limit: core::option::Option<u8>
+impl core::clone::Clone for skyfeed::FeedRequest
+pub fn skyfeed::FeedRequest::clone(&self) -> skyfeed::FeedRequest
+impl core::fmt::Debug for skyfeed::FeedRequest
+pub fn skyfeed::FeedRequest::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for skyfeed::FeedRequest
+impl core::marker::Send for skyfeed::FeedRequest
+impl core::marker::Sync for skyfeed::FeedRequest
+impl core::marker::Unpin for skyfeed::FeedRequest
+impl core::panic::unwind_safe::RefUnwindSafe for skyfeed::FeedRequest
+impl core::panic::unwind_safe::UnwindSafe for skyfeed::FeedRequest
+impl<P, T> atrium_common::types::throttled::Throttleable<P> for skyfeed::FeedRequest where P: core::default::Default
+pub fn skyfeed::FeedRequest::throttled(self) -> atrium_common::types::throttled::Throttled<T, P>
+impl<T, C> atrium_common::types::cached::Cacheable<C> for skyfeed::FeedRequest
+pub fn skyfeed::FeedRequest::cached(self, cache: C) -> atrium_common::types::cached::Cached<T, C>
+impl<T, U> core::convert::Into<U> for skyfeed::FeedRequest where U: core::convert::From<T>
+pub fn skyfeed::FeedRequest::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for skyfeed::FeedRequest where U: core::convert::Into<T>
+pub type skyfeed::FeedRequest::Error = core::convert::Infallible
+pub fn skyfeed::FeedRequest::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for skyfeed::FeedRequest where U: core::convert::TryFrom<T>
+pub type skyfeed::FeedRequest::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn skyfeed::FeedRequest::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for skyfeed::FeedRequest where T: core::clone::Clone
+pub type skyfeed::FeedRequest::Owned = T
+pub fn skyfeed::FeedRequest::clone_into(&self, target: &mut T)
+pub fn skyfeed::FeedRequest::to_owned(&self) -> T
+impl<T> core::any::Any for skyfeed::FeedRequest where T: 'static + ?core::marker::Sized
+pub fn skyfeed::FeedRequest::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for skyfeed::FeedRequest where T: ?core::marker::Sized
+pub fn skyfeed::FeedRequest::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for skyfeed::FeedRequest where T: ?core::marker::Sized
+pub fn skyfeed::FeedRequest::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for skyfeed::FeedRequest where T: core::clone::Clone
+pub unsafe fn skyfeed::FeedRequest::clone_to_uninit(&self, dest: *mut u8)
+impl<T> core::convert::From<T> for skyfeed::FeedRequest
+pub fn skyfeed::FeedRequest::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::FeedRequest
+pub type skyfeed::FeedRequest::Init = T
+pub const skyfeed::FeedRequest::ALIGN: usize
+pub unsafe fn skyfeed::FeedRequest::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn skyfeed::FeedRequest::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn skyfeed::FeedRequest::drop(ptr: usize)
+pub unsafe fn skyfeed::FeedRequest::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
+impl<T> libipld_core::codec::References<libipld_core::raw::RawCodec> for skyfeed::FeedRequest
+pub fn skyfeed::FeedRequest::references<R, E>(_c: libipld_core::raw::RawCodec, _r: &mut R, _set: &mut E) -> core::result::Result<(), anyhow::Error> where R: std::io::Read, E: core::iter::traits::collect::Extend<cid::cid::Cid<64>>
+impl<T> tracing::instrument::Instrument for skyfeed::FeedRequest
+impl<T> tracing::instrument::WithSubscriber for skyfeed::FeedRequest
+impl<T> typenum::type_operators::Same for skyfeed::FeedRequest
+pub type skyfeed::FeedRequest::Output = T
+impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::FeedRequest where V: ppv_lite86::types::MultiLane<T>
+pub fn skyfeed::FeedRequest::vzip(self) -> V
 pub struct skyfeed::FeedResult
 pub skyfeed::FeedResult::cursor: core::option::Option<alloc::string::String>
 pub skyfeed::FeedResult::feed: alloc::vec::Vec<skyfeed::Uri>
@@ -383,7 +490,7 @@ pub fn skyfeed::FeedResult::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for skyfeed::FeedResult where T: ?core::marker::Sized
 pub fn skyfeed::FeedResult::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for skyfeed::FeedResult where T: core::clone::Clone
-pub unsafe fn skyfeed::FeedResult::clone_to_uninit(&self, dst: *mut u8)
+pub unsafe fn skyfeed::FeedResult::clone_to_uninit(&self, dest: *mut u8)
 impl<T> core::convert::From<T> for skyfeed::FeedResult
 pub fn skyfeed::FeedResult::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::FeedResult
@@ -393,12 +500,12 @@ pub unsafe fn skyfeed::FeedResult::deref<'a>(ptr: usize) -> &'a T
 pub unsafe fn skyfeed::FeedResult::deref_mut<'a>(ptr: usize) -> &'a mut T
 pub unsafe fn skyfeed::FeedResult::drop(ptr: usize)
 pub unsafe fn skyfeed::FeedResult::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
-impl<T> icu_provider::any::MaybeSendSync for skyfeed::FeedResult
+impl<T> libipld_core::codec::References<libipld_core::raw::RawCodec> for skyfeed::FeedResult
+pub fn skyfeed::FeedResult::references<R, E>(_c: libipld_core::raw::RawCodec, _r: &mut R, _set: &mut E) -> core::result::Result<(), anyhow::Error> where R: std::io::Read, E: core::iter::traits::collect::Extend<cid::cid::Cid<64>>
 impl<T> tracing::instrument::Instrument for skyfeed::FeedResult
 impl<T> tracing::instrument::WithSubscriber for skyfeed::FeedResult
 impl<T> typenum::type_operators::Same for skyfeed::FeedResult
 pub type skyfeed::FeedResult::Output = T
-impl<T> yoke::erased::ErasedDestructor for skyfeed::FeedResult where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::FeedResult where V: ppv_lite86::types::MultiLane<T>
 pub fn skyfeed::FeedResult::vzip(self) -> V
 pub struct skyfeed::ImageEmbed
@@ -438,7 +545,7 @@ pub fn skyfeed::ImageEmbed::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for skyfeed::ImageEmbed where T: ?core::marker::Sized
 pub fn skyfeed::ImageEmbed::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for skyfeed::ImageEmbed where T: core::clone::Clone
-pub unsafe fn skyfeed::ImageEmbed::clone_to_uninit(&self, dst: *mut u8)
+pub unsafe fn skyfeed::ImageEmbed::clone_to_uninit(&self, dest: *mut u8)
 impl<T> core::convert::From<T> for skyfeed::ImageEmbed
 pub fn skyfeed::ImageEmbed::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::ImageEmbed
@@ -448,12 +555,12 @@ pub unsafe fn skyfeed::ImageEmbed::deref<'a>(ptr: usize) -> &'a T
 pub unsafe fn skyfeed::ImageEmbed::deref_mut<'a>(ptr: usize) -> &'a mut T
 pub unsafe fn skyfeed::ImageEmbed::drop(ptr: usize)
 pub unsafe fn skyfeed::ImageEmbed::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
-impl<T> icu_provider::any::MaybeSendSync for skyfeed::ImageEmbed
+impl<T> libipld_core::codec::References<libipld_core::raw::RawCodec> for skyfeed::ImageEmbed
+pub fn skyfeed::ImageEmbed::references<R, E>(_c: libipld_core::raw::RawCodec, _r: &mut R, _set: &mut E) -> core::result::Result<(), anyhow::Error> where R: std::io::Read, E: core::iter::traits::collect::Extend<cid::cid::Cid<64>>
 impl<T> tracing::instrument::Instrument for skyfeed::ImageEmbed
 impl<T> tracing::instrument::WithSubscriber for skyfeed::ImageEmbed
 impl<T> typenum::type_operators::Same for skyfeed::ImageEmbed
 pub type skyfeed::ImageEmbed::Output = T
-impl<T> yoke::erased::ErasedDestructor for skyfeed::ImageEmbed where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::ImageEmbed where V: ppv_lite86::types::MultiLane<T>
 pub fn skyfeed::ImageEmbed::vzip(self) -> V
 pub struct skyfeed::Post
@@ -498,7 +605,7 @@ pub fn skyfeed::Post::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for skyfeed::Post where T: ?core::marker::Sized
 pub fn skyfeed::Post::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for skyfeed::Post where T: core::clone::Clone
-pub unsafe fn skyfeed::Post::clone_to_uninit(&self, dst: *mut u8)
+pub unsafe fn skyfeed::Post::clone_to_uninit(&self, dest: *mut u8)
 impl<T> core::convert::From<T> for skyfeed::Post
 pub fn skyfeed::Post::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::Post
@@ -508,12 +615,12 @@ pub unsafe fn skyfeed::Post::deref<'a>(ptr: usize) -> &'a T
 pub unsafe fn skyfeed::Post::deref_mut<'a>(ptr: usize) -> &'a mut T
 pub unsafe fn skyfeed::Post::drop(ptr: usize)
 pub unsafe fn skyfeed::Post::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
-impl<T> icu_provider::any::MaybeSendSync for skyfeed::Post
+impl<T> libipld_core::codec::References<libipld_core::raw::RawCodec> for skyfeed::Post
+pub fn skyfeed::Post::references<R, E>(_c: libipld_core::raw::RawCodec, _r: &mut R, _set: &mut E) -> core::result::Result<(), anyhow::Error> where R: std::io::Read, E: core::iter::traits::collect::Extend<cid::cid::Cid<64>>
 impl<T> tracing::instrument::Instrument for skyfeed::Post
 impl<T> tracing::instrument::WithSubscriber for skyfeed::Post
 impl<T> typenum::type_operators::Same for skyfeed::Post
 pub type skyfeed::Post::Output = T
-impl<T> yoke::erased::ErasedDestructor for skyfeed::Post where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::Post where V: ppv_lite86::types::MultiLane<T>
 pub fn skyfeed::Post::vzip(self) -> V
 pub struct skyfeed::QuoteEmbed
@@ -552,7 +659,7 @@ pub fn skyfeed::QuoteEmbed::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for skyfeed::QuoteEmbed where T: ?core::marker::Sized
 pub fn skyfeed::QuoteEmbed::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for skyfeed::QuoteEmbed where T: core::clone::Clone
-pub unsafe fn skyfeed::QuoteEmbed::clone_to_uninit(&self, dst: *mut u8)
+pub unsafe fn skyfeed::QuoteEmbed::clone_to_uninit(&self, dest: *mut u8)
 impl<T> core::convert::From<T> for skyfeed::QuoteEmbed
 pub fn skyfeed::QuoteEmbed::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::QuoteEmbed
@@ -562,69 +669,14 @@ pub unsafe fn skyfeed::QuoteEmbed::deref<'a>(ptr: usize) -> &'a T
 pub unsafe fn skyfeed::QuoteEmbed::deref_mut<'a>(ptr: usize) -> &'a mut T
 pub unsafe fn skyfeed::QuoteEmbed::drop(ptr: usize)
 pub unsafe fn skyfeed::QuoteEmbed::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
-impl<T> icu_provider::any::MaybeSendSync for skyfeed::QuoteEmbed
+impl<T> libipld_core::codec::References<libipld_core::raw::RawCodec> for skyfeed::QuoteEmbed
+pub fn skyfeed::QuoteEmbed::references<R, E>(_c: libipld_core::raw::RawCodec, _r: &mut R, _set: &mut E) -> core::result::Result<(), anyhow::Error> where R: std::io::Read, E: core::iter::traits::collect::Extend<cid::cid::Cid<64>>
 impl<T> tracing::instrument::Instrument for skyfeed::QuoteEmbed
 impl<T> tracing::instrument::WithSubscriber for skyfeed::QuoteEmbed
 impl<T> typenum::type_operators::Same for skyfeed::QuoteEmbed
 pub type skyfeed::QuoteEmbed::Output = T
-impl<T> yoke::erased::ErasedDestructor for skyfeed::QuoteEmbed where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::QuoteEmbed where V: ppv_lite86::types::MultiLane<T>
 pub fn skyfeed::QuoteEmbed::vzip(self) -> V
-pub struct skyfeed::Request
-pub skyfeed::Request::cursor: core::option::Option<alloc::string::String>
-pub skyfeed::Request::feed: alloc::string::String
-pub skyfeed::Request::limit: core::option::Option<u8>
-impl core::clone::Clone for skyfeed::Request
-pub fn skyfeed::Request::clone(&self) -> skyfeed::Request
-impl core::fmt::Debug for skyfeed::Request
-pub fn skyfeed::Request::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::marker::Freeze for skyfeed::Request
-impl core::marker::Send for skyfeed::Request
-impl core::marker::Sync for skyfeed::Request
-impl core::marker::Unpin for skyfeed::Request
-impl core::panic::unwind_safe::RefUnwindSafe for skyfeed::Request
-impl core::panic::unwind_safe::UnwindSafe for skyfeed::Request
-impl<P, T> atrium_common::types::throttled::Throttleable<P> for skyfeed::Request where P: core::default::Default
-pub fn skyfeed::Request::throttled(self) -> atrium_common::types::throttled::Throttled<T, P>
-impl<T, C> atrium_common::types::cached::Cacheable<C> for skyfeed::Request
-pub fn skyfeed::Request::cached(self, cache: C) -> atrium_common::types::cached::Cached<T, C>
-impl<T, U> core::convert::Into<U> for skyfeed::Request where U: core::convert::From<T>
-pub fn skyfeed::Request::into(self) -> U
-impl<T, U> core::convert::TryFrom<U> for skyfeed::Request where U: core::convert::Into<T>
-pub type skyfeed::Request::Error = core::convert::Infallible
-pub fn skyfeed::Request::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
-impl<T, U> core::convert::TryInto<U> for skyfeed::Request where U: core::convert::TryFrom<T>
-pub type skyfeed::Request::Error = <U as core::convert::TryFrom<T>>::Error
-pub fn skyfeed::Request::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
-impl<T> alloc::borrow::ToOwned for skyfeed::Request where T: core::clone::Clone
-pub type skyfeed::Request::Owned = T
-pub fn skyfeed::Request::clone_into(&self, target: &mut T)
-pub fn skyfeed::Request::to_owned(&self) -> T
-impl<T> core::any::Any for skyfeed::Request where T: 'static + ?core::marker::Sized
-pub fn skyfeed::Request::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for skyfeed::Request where T: ?core::marker::Sized
-pub fn skyfeed::Request::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for skyfeed::Request where T: ?core::marker::Sized
-pub fn skyfeed::Request::borrow_mut(&mut self) -> &mut T
-impl<T> core::clone::CloneToUninit for skyfeed::Request where T: core::clone::Clone
-pub unsafe fn skyfeed::Request::clone_to_uninit(&self, dst: *mut u8)
-impl<T> core::convert::From<T> for skyfeed::Request
-pub fn skyfeed::Request::from(t: T) -> T
-impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::Request
-pub type skyfeed::Request::Init = T
-pub const skyfeed::Request::ALIGN: usize
-pub unsafe fn skyfeed::Request::deref<'a>(ptr: usize) -> &'a T
-pub unsafe fn skyfeed::Request::deref_mut<'a>(ptr: usize) -> &'a mut T
-pub unsafe fn skyfeed::Request::drop(ptr: usize)
-pub unsafe fn skyfeed::Request::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
-impl<T> icu_provider::any::MaybeSendSync for skyfeed::Request
-impl<T> tracing::instrument::Instrument for skyfeed::Request
-impl<T> tracing::instrument::WithSubscriber for skyfeed::Request
-impl<T> typenum::type_operators::Same for skyfeed::Request
-pub type skyfeed::Request::Output = T
-impl<T> yoke::erased::ErasedDestructor for skyfeed::Request where T: 'static
-impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::Request where V: ppv_lite86::types::MultiLane<T>
-pub fn skyfeed::Request::vzip(self) -> V
 pub struct skyfeed::Uri(pub alloc::string::String)
 impl core::clone::Clone for skyfeed::Uri
 pub fn skyfeed::Uri::clone(&self) -> skyfeed::Uri
@@ -671,7 +723,7 @@ pub fn skyfeed::Uri::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for skyfeed::Uri where T: ?core::marker::Sized
 pub fn skyfeed::Uri::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for skyfeed::Uri where T: core::clone::Clone
-pub unsafe fn skyfeed::Uri::clone_to_uninit(&self, dst: *mut u8)
+pub unsafe fn skyfeed::Uri::clone_to_uninit(&self, dest: *mut u8)
 impl<T> core::convert::From<T> for skyfeed::Uri
 pub fn skyfeed::Uri::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::Uri
@@ -681,12 +733,12 @@ pub unsafe fn skyfeed::Uri::deref<'a>(ptr: usize) -> &'a T
 pub unsafe fn skyfeed::Uri::deref_mut<'a>(ptr: usize) -> &'a mut T
 pub unsafe fn skyfeed::Uri::drop(ptr: usize)
 pub unsafe fn skyfeed::Uri::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
-impl<T> icu_provider::any::MaybeSendSync for skyfeed::Uri
+impl<T> libipld_core::codec::References<libipld_core::raw::RawCodec> for skyfeed::Uri
+pub fn skyfeed::Uri::references<R, E>(_c: libipld_core::raw::RawCodec, _r: &mut R, _set: &mut E) -> core::result::Result<(), anyhow::Error> where R: std::io::Read, E: core::iter::traits::collect::Extend<cid::cid::Cid<64>>
 impl<T> tracing::instrument::Instrument for skyfeed::Uri
 impl<T> tracing::instrument::WithSubscriber for skyfeed::Uri
 impl<T> typenum::type_operators::Same for skyfeed::Uri
 pub type skyfeed::Uri::Output = T
-impl<T> yoke::erased::ErasedDestructor for skyfeed::Uri where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::Uri where V: ppv_lite86::types::MultiLane<T>
 pub fn skyfeed::Uri::vzip(self) -> V
 pub struct skyfeed::VideoEmbed
@@ -725,7 +777,7 @@ pub fn skyfeed::VideoEmbed::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for skyfeed::VideoEmbed where T: ?core::marker::Sized
 pub fn skyfeed::VideoEmbed::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for skyfeed::VideoEmbed where T: core::clone::Clone
-pub unsafe fn skyfeed::VideoEmbed::clone_to_uninit(&self, dst: *mut u8)
+pub unsafe fn skyfeed::VideoEmbed::clone_to_uninit(&self, dest: *mut u8)
 impl<T> core::convert::From<T> for skyfeed::VideoEmbed
 pub fn skyfeed::VideoEmbed::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::VideoEmbed
@@ -735,21 +787,19 @@ pub unsafe fn skyfeed::VideoEmbed::deref<'a>(ptr: usize) -> &'a T
 pub unsafe fn skyfeed::VideoEmbed::deref_mut<'a>(ptr: usize) -> &'a mut T
 pub unsafe fn skyfeed::VideoEmbed::drop(ptr: usize)
 pub unsafe fn skyfeed::VideoEmbed::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
-impl<T> icu_provider::any::MaybeSendSync for skyfeed::VideoEmbed
+impl<T> libipld_core::codec::References<libipld_core::raw::RawCodec> for skyfeed::VideoEmbed
+pub fn skyfeed::VideoEmbed::references<R, E>(_c: libipld_core::raw::RawCodec, _r: &mut R, _set: &mut E) -> core::result::Result<(), anyhow::Error> where R: std::io::Read, E: core::iter::traits::collect::Extend<cid::cid::Cid<64>>
 impl<T> tracing::instrument::Instrument for skyfeed::VideoEmbed
 impl<T> tracing::instrument::WithSubscriber for skyfeed::VideoEmbed
 impl<T> typenum::type_operators::Same for skyfeed::VideoEmbed
 pub type skyfeed::VideoEmbed::Output = T
-impl<T> yoke::erased::ErasedDestructor for skyfeed::VideoEmbed where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::VideoEmbed where V: ppv_lite86::types::MultiLane<T>
 pub fn skyfeed::VideoEmbed::vzip(self) -> V
-pub trait skyfeed::Feed<Handler: skyfeed::FeedHandler + core::clone::Clone + core::marker::Send + core::marker::Sync + 'static>
-pub fn skyfeed::Feed::handler(&mut self) -> Handler
-pub fn skyfeed::Feed::start(&mut self, name: impl core::convert::AsRef<str>, address: impl core::convert::Into<core::net::socket_addr::SocketAddr> + core::fmt::Debug + core::clone::Clone + core::marker::Send) -> impl core::future::future::Future<Output = ()> + core::marker::Send
-pub fn skyfeed::Feed::start_with_config(&mut self, name: impl core::convert::AsRef<str>, config: skyfeed::config::Config, address: impl core::convert::Into<core::net::socket_addr::SocketAddr> + core::fmt::Debug + core::clone::Clone + core::marker::Send) -> impl core::future::future::Future<Output = ()> + core::marker::Send
 pub trait skyfeed::FeedHandler
+pub fn skyfeed::FeedHandler::available_feeds(&mut self) -> impl core::future::future::Future<Output = alloc::vec::Vec<alloc::string::String>> + core::marker::Send
 pub fn skyfeed::FeedHandler::delete_like(&mut self, like_uri: skyfeed::Uri) -> impl core::future::future::Future<Output = ()> + core::marker::Send
 pub fn skyfeed::FeedHandler::delete_post(&mut self, uri: skyfeed::Uri) -> impl core::future::future::Future<Output = ()> + core::marker::Send
+pub fn skyfeed::FeedHandler::insert_like(&mut self, like_uri: skyfeed::Uri, liked_post_uri: skyfeed::Uri) -> impl core::future::future::Future<Output = ()> + core::marker::Send
 pub fn skyfeed::FeedHandler::insert_post(&mut self, post: skyfeed::Post) -> impl core::future::future::Future<Output = ()> + core::marker::Send
-pub fn skyfeed::FeedHandler::like_post(&mut self, like_uri: skyfeed::Uri, liked_post_uri: skyfeed::Uri) -> impl core::future::future::Future<Output = ()> + core::marker::Send
-pub fn skyfeed::FeedHandler::serve_feed(&self, request: skyfeed::Request) -> impl core::future::future::Future<Output = skyfeed::FeedResult> + core::marker::Send
+pub fn skyfeed::FeedHandler::serve_feed(&self, request: skyfeed::FeedRequest) -> impl core::future::future::Future<Output = skyfeed::FeedResult> + core::marker::Send
+pub async fn skyfeed::start(config: skyfeed::Config, queue_limit: usize, feed_handler: alloc::sync::Arc<tokio::sync::mutex::Mutex<impl skyfeed::FeedHandler + core::marker::Send + 'static>>, address: impl core::convert::Into<core::net::socket_addr::SocketAddr> + core::marker::Send + 'static)
