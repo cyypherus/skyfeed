@@ -1,6 +1,6 @@
 use crate::Cid;
 use crate::firehose::frames::Frame;
-use crate::models::{Did, Embed, Label, Post, Uri};
+use crate::models::{Did, Embed, Label, Post, ReplyRef, Uri};
 use crate::update_counter::UpdatesCounter;
 use atrium_api::app::bsky::feed::{self, Like};
 use atrium_api::com::atproto::sync::subscribe_repos::{Commit, NSID};
@@ -417,6 +417,10 @@ impl FirehoseConnector {
                                         .iter()
                                         .filter_map(|lang| serde_json::to_string(&lang).ok())
                                         .collect(),
+                                    reply: record.reply.as_ref().map(|r| ReplyRef {
+                                        parent: Uri(r.parent.uri.clone()),
+                                        root: Uri(r.root.uri.clone()),
+                                    }),
                                 };
                                 let _ = tx.send_async(FirehoseEvent::Post(Box::new(post))).await;
                             }

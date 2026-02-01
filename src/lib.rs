@@ -12,5 +12,5 @@ pub use config::Config;
 pub use feed::{FeedHandler, start};
 pub use models::{
     Cid, Did, Embed, ExternalEmbed, FeedRequest, FeedResult, ImageEmbed, Label, MediaEmbed, Post,
-    QuoteEmbed, Uri, VideoEmbed,
+    QuoteEmbed, ReplyRef, Uri, VideoEmbed,
 };
