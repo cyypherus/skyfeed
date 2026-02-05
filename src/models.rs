@@ -25,6 +25,13 @@ pub struct Post {
     pub langs: Vec<String>,
     pub timestamp: DateTime<Utc>,
     pub embed: Option<Embed>,
+    pub reply: Option<ReplyRef>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ReplyRef {
+    pub parent: Uri,
+    pub root: Uri,
 }
 
 #[derive(Debug, Clone)]

@@ -569,6 +569,7 @@ pub skyfeed::Post::cid: skyfeed::Cid
 pub skyfeed::Post::embed: core::option::Option<skyfeed::Embed>
 pub skyfeed::Post::labels: alloc::vec::Vec<skyfeed::Label>
 pub skyfeed::Post::langs: alloc::vec::Vec<alloc::string::String>
+pub skyfeed::Post::reply: core::option::Option<skyfeed::ReplyRef>
 pub skyfeed::Post::text: alloc::string::String
 pub skyfeed::Post::timestamp: chrono::datetime::DateTime<chrono::offset::utc::Utc>
 pub skyfeed::Post::uri: skyfeed::Uri
@@ -677,6 +678,60 @@ impl<T> typenum::type_operators::Same for skyfeed::QuoteEmbed
 pub type skyfeed::QuoteEmbed::Output = T
 impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::QuoteEmbed where V: ppv_lite86::types::MultiLane<T>
 pub fn skyfeed::QuoteEmbed::vzip(self) -> V
+pub struct skyfeed::ReplyRef
+pub skyfeed::ReplyRef::parent: skyfeed::Uri
+pub skyfeed::ReplyRef::root: skyfeed::Uri
+impl core::clone::Clone for skyfeed::ReplyRef
+pub fn skyfeed::ReplyRef::clone(&self) -> skyfeed::ReplyRef
+impl core::fmt::Debug for skyfeed::ReplyRef
+pub fn skyfeed::ReplyRef::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for skyfeed::ReplyRef
+impl core::marker::Send for skyfeed::ReplyRef
+impl core::marker::Sync for skyfeed::ReplyRef
+impl core::marker::Unpin for skyfeed::ReplyRef
+impl core::panic::unwind_safe::RefUnwindSafe for skyfeed::ReplyRef
+impl core::panic::unwind_safe::UnwindSafe for skyfeed::ReplyRef
+impl<P, T> atrium_common::types::throttled::Throttleable<P> for skyfeed::ReplyRef where P: core::default::Default
+pub fn skyfeed::ReplyRef::throttled(self) -> atrium_common::types::throttled::Throttled<T, P>
+impl<T, C> atrium_common::types::cached::Cacheable<C> for skyfeed::ReplyRef
+pub fn skyfeed::ReplyRef::cached(self, cache: C) -> atrium_common::types::cached::Cached<T, C>
+impl<T, U> core::convert::Into<U> for skyfeed::ReplyRef where U: core::convert::From<T>
+pub fn skyfeed::ReplyRef::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for skyfeed::ReplyRef where U: core::convert::Into<T>
+pub type skyfeed::ReplyRef::Error = core::convert::Infallible
+pub fn skyfeed::ReplyRef::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for skyfeed::ReplyRef where U: core::convert::TryFrom<T>
+pub type skyfeed::ReplyRef::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn skyfeed::ReplyRef::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for skyfeed::ReplyRef where T: core::clone::Clone
+pub type skyfeed::ReplyRef::Owned = T
+pub fn skyfeed::ReplyRef::clone_into(&self, target: &mut T)
+pub fn skyfeed::ReplyRef::to_owned(&self) -> T
+impl<T> core::any::Any for skyfeed::ReplyRef where T: 'static + ?core::marker::Sized
+pub fn skyfeed::ReplyRef::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for skyfeed::ReplyRef where T: ?core::marker::Sized
+pub fn skyfeed::ReplyRef::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for skyfeed::ReplyRef where T: ?core::marker::Sized
+pub fn skyfeed::ReplyRef::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for skyfeed::ReplyRef where T: core::clone::Clone
+pub unsafe fn skyfeed::ReplyRef::clone_to_uninit(&self, dest: *mut u8)
+impl<T> core::convert::From<T> for skyfeed::ReplyRef
+pub fn skyfeed::ReplyRef::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for skyfeed::ReplyRef
+pub type skyfeed::ReplyRef::Init = T
+pub const skyfeed::ReplyRef::ALIGN: usize
+pub unsafe fn skyfeed::ReplyRef::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn skyfeed::ReplyRef::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn skyfeed::ReplyRef::drop(ptr: usize)
+pub unsafe fn skyfeed::ReplyRef::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
+impl<T> libipld_core::codec::References<libipld_core::raw::RawCodec> for skyfeed::ReplyRef
+pub fn skyfeed::ReplyRef::references<R, E>(_c: libipld_core::raw::RawCodec, _r: &mut R, _set: &mut E) -> core::result::Result<(), anyhow::Error> where R: std::io::Read, E: core::iter::traits::collect::Extend<cid::cid::Cid<64>>
+impl<T> tracing::instrument::Instrument for skyfeed::ReplyRef
+impl<T> tracing::instrument::WithSubscriber for skyfeed::ReplyRef
+impl<T> typenum::type_operators::Same for skyfeed::ReplyRef
+pub type skyfeed::ReplyRef::Output = T
+impl<V, T> ppv_lite86::types::VZip<V> for skyfeed::ReplyRef where V: ppv_lite86::types::MultiLane<T>
+pub fn skyfeed::ReplyRef::vzip(self) -> V
 pub struct skyfeed::Uri(pub alloc::string::String)
 impl core::clone::Clone for skyfeed::Uri
 pub fn skyfeed::Uri::clone(&self) -> skyfeed::Uri
